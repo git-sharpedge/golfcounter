@@ -1,0 +1,646 @@
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/db.php';
+
+session_start();
+
+header('Content-Type: application/json; charset=utf-8');
+
+try {
+    $rawInput = file_get_contents('php://input');
+    $input = $rawInput ? json_decode($rawInput, true, 512, JSON_THROW_ON_ERROR) : [];
+    if (!is_array($input)) {
+        $input = [];
+    }
+
+    $action = $input['action'] ?? '';
+    $pdo = getPdo();
+
+    switch ($action) {
+        case 'register':
+            registerUser($pdo, $input);
+            break;
+        case 'login':
+            loginUser($pdo, $input);
+            break;
+        case 'logout':
+            logoutUser();
+            break;
+        case 'get_session':
+            getSession($pdo);
+            break;
+        case 'update_account':
+            updateAccount($pdo, $input);
+            break;
+        case 'start_round':
+            startRound($pdo, $input);
+            break;
+        case 'save_hole':
+            saveHole($pdo, $input);
+            break;
+        case 'finish_round':
+            finishRound($pdo, $input);
+            break;
+        case 'get_round':
+            getRound($pdo, $input);
+            break;
+        case 'list_rounds':
+            listRounds($pdo);
+            break;
+        case 'update_finished_round':
+            updateFinishedRound($pdo, $input);
+            break;
+        case 'delete_finished_round':
+            deleteFinishedRound($pdo, $input);
+            break;
+        default:
+            sendJson(['error' => 'Invalid action'], 400);
+    }
+} catch (Throwable $e) {
+    sendJson(['error' => $e->getMessage()], 500);
+}
+
+function registerUser(PDO $pdo, array $input): void
+{
+    $name = trim((string) ($input['name'] ?? ''));
+    $email = strtolower(trim((string) ($input['email'] ?? '')));
+    $golfId = trim((string) ($input['golf_id'] ?? ''));
+    $password = (string) ($input['password'] ?? '');
+
+    if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 6) {
+        sendJson(['error' => 'Ogiltig registrering.'], 422);
+    }
+
+    $stmt = $pdo->prepare('SELECT id FROM users WHERE email = :email LIMIT 1');
+    $stmt->execute(['email' => $email]);
+    if ($stmt->fetch()) {
+        sendJson(['error' => 'E-postadressen används redan.'], 409);
+    }
+
+    $insert = $pdo->prepare(
+        'INSERT INTO users (name, email, golf_id, password_hash)
+         VALUES (:name, :email, :golf_id, :password_hash)'
+    );
+    $insert->execute([
+        'name' => $name,
+        'email' => $email,
+        'golf_id' => $golfId,
+        'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+    ]);
+
+    $userId = (int) $pdo->lastInsertId();
+    $_SESSION['user_id'] = $userId;
+
+    sendJson([
+        'ok' => true,
+        'user' => [
+            'id' => $userId,
+            'name' => $name,
+            'email' => $email,
+            'golf_id' => $golfId,
+        ],
+    ]);
+}
+
+function loginUser(PDO $pdo, array $input): void
+{
+    $email = strtolower(trim((string) ($input['email'] ?? '')));
+    $password = (string) ($input['password'] ?? '');
+
+    $stmt = $pdo->prepare('SELECT id, name, email, golf_id, password_hash FROM users WHERE email = :email LIMIT 1');
+    $stmt->execute(['email' => $email]);
+    $user = $stmt->fetch();
+
+    if (!$user || !password_verify($password, $user['password_hash'])) {
+        sendJson(['error' => 'Fel e-post eller lösenord.'], 401);
+    }
+
+    $_SESSION['user_id'] = (int) $user['id'];
+    sendJson([
+        'ok' => true,
+        'user' => [
+            'id' => (int) $user['id'],
+            'name' => $user['name'],
+            'email' => $user['email'],
+            'golf_id' => $user['golf_id'],
+        ],
+    ]);
+}
+
+function logoutUser(): void
+{
+    $_SESSION = [];
+    if (ini_get('session.use_cookies')) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], (bool) $params['secure'], (bool) $params['httponly']);
+    }
+    session_destroy();
+
+    sendJson(['ok' => true]);
+}
+
+function getSession(PDO $pdo): void
+{
+    $userId = getAuthenticatedUserId();
+    if ($userId === null) {
+        sendJson(['user' => null]);
+    }
+
+    $user = fetchUserById($pdo, $userId);
+    sendJson(['user' => $user]);
+}
+
+function updateAccount(PDO $pdo, array $input): void
+{
+    $userId = requireAuthenticatedUserId();
+    $user = fetchUserById($pdo, $userId, true);
+
+    $name = trim((string) ($input['name'] ?? $user['name']));
+    $golfId = trim((string) ($input['golf_id'] ?? $user['golf_id']));
+    $newPassword = (string) ($input['new_password'] ?? '');
+    $currentPassword = (string) ($input['current_password'] ?? '');
+
+    if ($name === '') {
+        sendJson(['error' => 'Namn kan inte vara tomt.'], 422);
+    }
+
+    if ($newPassword !== '') {
+        if (!password_verify($currentPassword, $user['password_hash'])) {
+            sendJson(['error' => 'Nuvarande lösenord är fel.'], 401);
+        }
+        if (strlen($newPassword) < 6) {
+            sendJson(['error' => 'Nytt lösenord måste vara minst 6 tecken.'], 422);
+        }
+    }
+
+    $passwordHash = $newPassword !== '' ? password_hash($newPassword, PASSWORD_DEFAULT) : $user['password_hash'];
+
+    $stmt = $pdo->prepare(
+        'UPDATE users
+         SET name = :name, golf_id = :golf_id, password_hash = :password_hash
+         WHERE id = :id'
+    );
+    $stmt->execute([
+        'name' => $name,
+        'golf_id' => $golfId,
+        'password_hash' => $passwordHash,
+        'id' => $userId,
+    ]);
+
+    sendJson([
+        'ok' => true,
+        'user' => [
+            'id' => $userId,
+            'name' => $name,
+            'email' => $user['email'],
+            'golf_id' => $golfId,
+        ],
+    ]);
+}
+
+function startRound(PDO $pdo, array $input): void
+{
+    $userId = requireAuthenticatedUserId();
+    $user = fetchUserById($pdo, $userId);
+    $courseName = trim((string) ($input['course_name'] ?? ''));
+    $totalHoles = (int) ($input['total_holes'] ?? 0);
+    $extraPlayers = $input['players'] ?? [];
+
+    if ($courseName === '' || !in_array($totalHoles, [9, 18], true) || !is_array($extraPlayers)) {
+        sendJson(['error' => 'Ogiltig indata.'], 422);
+    }
+
+    $validExtraPlayers = [];
+    foreach ($extraPlayers as $extraPlayer) {
+        if (!is_array($extraPlayer)) {
+            continue;
+        }
+        $name = trim((string) ($extraPlayer['player_name'] ?? ''));
+        $golfId = trim((string) ($extraPlayer['golf_id'] ?? ''));
+        if ($name === '') {
+            continue;
+        }
+        $validExtraPlayers[] = [
+            'name' => $name,
+            'golf_id' => $golfId,
+        ];
+    }
+
+    if (count($validExtraPlayers) > 3) {
+        sendJson(['error' => 'Max 4 spelare per rond (du + 3 medspelare).'], 422);
+    }
+
+    $strokes = array_fill(0, $totalHoles, null);
+    $holeDurations = array_fill(0, $totalHoles, null);
+    $startedAt = (new DateTimeImmutable('now'))->format('Y-m-d H:i:s');
+
+    $pdo->beginTransaction();
+    try {
+        $stmt = $pdo->prepare(
+            'INSERT INTO rounds (user_id, player_name, golf_id, course_name, total_holes, started_at, strokes_json, hole_durations_json)
+             VALUES (:user_id, :player_name, :golf_id, :course_name, :total_holes, :started_at, :strokes_json, :hole_durations_json)'
+        );
+        $stmt->execute([
+            'user_id' => $userId,
+            'player_name' => $user['name'],
+            'golf_id' => $user['golf_id'],
+            'course_name' => $courseName,
+            'total_holes' => $totalHoles,
+            'started_at' => $startedAt,
+            'strokes_json' => json_encode($strokes, JSON_THROW_ON_ERROR),
+            'hole_durations_json' => json_encode($holeDurations, JSON_THROW_ON_ERROR),
+        ]);
+
+        $roundId = (int) $pdo->lastInsertId();
+        insertRoundPlayer($pdo, $roundId, $user['name'], $user['golf_id'], true, $strokes);
+
+        foreach ($validExtraPlayers as $extraPlayer) {
+            insertRoundPlayer($pdo, $roundId, $extraPlayer['name'], $extraPlayer['golf_id'], false, $strokes);
+        }
+
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+
+    sendJson([
+        'round_id' => $roundId,
+        'started_at' => $startedAt,
+        'total_holes' => $totalHoles,
+        'players' => fetchRoundPlayers($pdo, $roundId),
+    ]);
+}
+
+function saveHole(PDO $pdo, array $input): void
+{
+    $userId = requireAuthenticatedUserId();
+    $roundId = (int) ($input['round_id'] ?? 0);
+    $holeNumber = (int) ($input['hole_number'] ?? 0);
+    $playerStrokes = $input['player_strokes'] ?? [];
+    $holeDurationSeconds = isset($input['hole_duration_seconds']) ? (int) $input['hole_duration_seconds'] : null;
+
+    if ($roundId <= 0 || $holeNumber <= 0 || !is_array($playerStrokes)) {
+        sendJson(['error' => 'Ogiltig indata för hålsparning.'], 422);
+    }
+    if ($holeDurationSeconds !== null && $holeDurationSeconds < 0) {
+        sendJson(['error' => 'Ogiltig tid för hålet.'], 422);
+    }
+
+    $round = fetchRoundRow($pdo, $roundId, $userId);
+    $totalHoles = (int) $round['total_holes'];
+
+    if ($holeNumber > $totalHoles) {
+        sendJson(['error' => 'Hålet finns inte i denna rond.'], 422);
+    }
+
+    $players = fetchRoundPlayers($pdo, $roundId, true);
+    $playersById = [];
+    foreach ($players as $player) {
+        $playersById[(int) $player['id']] = $player;
+    }
+
+    foreach ($playerStrokes as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+
+        $playerId = (int) ($row['player_id'] ?? 0);
+        $strokes = (int) ($row['strokes'] ?? -1);
+        if ($playerId <= 0 || $strokes < 0 || !isset($playersById[$playerId])) {
+            continue;
+        }
+
+        $savedStrokes = json_decode($playersById[$playerId]['strokes_json'], true, 512, JSON_THROW_ON_ERROR);
+        $savedStrokes[$holeNumber - 1] = $strokes;
+
+        $stmt = $pdo->prepare('UPDATE round_players SET strokes_json = :strokes_json WHERE id = :id');
+        $stmt->execute([
+            'strokes_json' => json_encode($savedStrokes, JSON_THROW_ON_ERROR),
+            'id' => $playerId,
+        ]);
+    }
+
+    $ownerStrokes = fetchOwnerStrokes($pdo, $roundId);
+    $holeDurations = json_decode((string) ($round['hole_durations_json'] ?? ''), true);
+    if (!is_array($holeDurations) || count($holeDurations) !== $totalHoles) {
+        $holeDurations = array_fill(0, $totalHoles, null);
+    }
+    if ($holeDurationSeconds !== null) {
+        $holeDurations[$holeNumber - 1] = $holeDurationSeconds;
+    }
+
+    $stmt = $pdo->prepare('UPDATE rounds SET strokes_json = :strokes_json, hole_durations_json = :hole_durations_json WHERE id = :id');
+    $stmt->execute([
+        'strokes_json' => json_encode($ownerStrokes, JSON_THROW_ON_ERROR),
+        'hole_durations_json' => json_encode($holeDurations, JSON_THROW_ON_ERROR),
+        'id' => $roundId,
+    ]);
+
+    sendJson([
+        'ok' => true,
+        'players' => fetchRoundPlayers($pdo, $roundId),
+        'hole_durations_seconds' => $holeDurations,
+    ]);
+}
+
+function finishRound(PDO $pdo, array $input): void
+{
+    $userId = requireAuthenticatedUserId();
+    $roundId = (int) ($input['round_id'] ?? 0);
+    if ($roundId <= 0) {
+        sendJson(['error' => 'Ogiltigt rond-id.'], 422);
+    }
+
+    fetchRoundRow($pdo, $roundId, $userId);
+
+    $endedAt = (new DateTimeImmutable('now'))->format('Y-m-d H:i:s');
+    $stmt = $pdo->prepare('UPDATE rounds SET ended_at = :ended_at WHERE id = :id');
+    $stmt->execute([
+        'ended_at' => $endedAt,
+        'id' => $roundId,
+    ]);
+
+    sendJson(['ok' => true, 'ended_at' => $endedAt]);
+}
+
+function getRound(PDO $pdo, array $input): void
+{
+    $userId = requireAuthenticatedUserId();
+    $roundId = (int) ($input['round_id'] ?? 0);
+    if ($roundId <= 0) {
+        sendJson(['error' => 'Ogiltigt rond-id.'], 422);
+    }
+
+    $round = fetchRoundRow($pdo, $roundId, $userId);
+    $round['id'] = (int) $round['id'];
+    $round['total_holes'] = (int) $round['total_holes'];
+    $round['user_id'] = (int) ($round['user_id'] ?? 0);
+    $round['players'] = fetchRoundPlayers($pdo, $roundId);
+    $round['hole_durations_seconds'] = json_decode((string) ($round['hole_durations_json'] ?? ''), true);
+    if (!is_array($round['hole_durations_seconds'])) {
+        $round['hole_durations_seconds'] = [];
+    }
+    unset($round['strokes_json']);
+    unset($round['hole_durations_json']);
+
+    sendJson(['round' => $round]);
+}
+
+function listRounds(PDO $pdo): void
+{
+    $userId = requireAuthenticatedUserId();
+
+    $stmt = $pdo->prepare(
+        'SELECT r.id, r.course_name, r.total_holes, r.started_at, r.ended_at, r.created_at,
+                COUNT(rp.id) AS players_count
+         FROM rounds r
+         LEFT JOIN round_players rp ON rp.round_id = r.id
+         WHERE r.user_id = :user_id
+         GROUP BY r.id
+         ORDER BY r.started_at DESC, r.id DESC'
+    );
+    $stmt->execute(['user_id' => $userId]);
+    $rows = $stmt->fetchAll();
+
+    foreach ($rows as &$row) {
+        $row['id'] = (int) $row['id'];
+        $row['total_holes'] = (int) $row['total_holes'];
+        $row['players_count'] = (int) $row['players_count'];
+    }
+
+    sendJson(['rounds' => $rows]);
+}
+
+function updateFinishedRound(PDO $pdo, array $input): void
+{
+    $userId = requireAuthenticatedUserId();
+    $roundId = (int) ($input['round_id'] ?? 0);
+    $playersInput = $input['players'] ?? [];
+
+    if ($roundId <= 0 || !is_array($playersInput)) {
+        sendJson(['error' => 'Ogiltig indata för redigering av rond.'], 422);
+    }
+
+    $round = fetchRoundRow($pdo, $roundId, $userId);
+    if (empty($round['ended_at'])) {
+        sendJson(['error' => 'Bara avslutade ronder kan redigeras.'], 422);
+    }
+
+    $totalHoles = (int) $round['total_holes'];
+    $existingPlayers = fetchRoundPlayers($pdo, $roundId, true);
+    $existingById = [];
+    foreach ($existingPlayers as $player) {
+        $existingById[(int) $player['id']] = $player;
+    }
+
+    $pdo->beginTransaction();
+    try {
+        foreach ($playersInput as $playerInput) {
+            if (!is_array($playerInput)) {
+                continue;
+            }
+
+            $playerId = (int) ($playerInput['player_id'] ?? 0);
+            $strokesInput = $playerInput['strokes'] ?? null;
+            if ($playerId <= 0 || !isset($existingById[$playerId]) || !is_array($strokesInput)) {
+                continue;
+            }
+
+            if (count($strokesInput) !== $totalHoles) {
+                sendJson(['error' => 'Fel antal hål i redigeringsdata.'], 422);
+            }
+
+            $validatedStrokes = [];
+            foreach ($strokesInput as $stroke) {
+                $value = (int) $stroke;
+                if ($value < 0) {
+                    sendJson(['error' => 'Slag kan inte vara negativa.'], 422);
+                }
+                $validatedStrokes[] = $value;
+            }
+
+            $stmt = $pdo->prepare('UPDATE round_players SET strokes_json = :strokes_json WHERE id = :id');
+            $stmt->execute([
+                'strokes_json' => json_encode($validatedStrokes, JSON_THROW_ON_ERROR),
+                'id' => $playerId,
+            ]);
+        }
+
+        $ownerStrokes = fetchOwnerStrokes($pdo, $roundId);
+        $stmt = $pdo->prepare('UPDATE rounds SET strokes_json = :strokes_json WHERE id = :id');
+        $stmt->execute([
+            'strokes_json' => json_encode($ownerStrokes, JSON_THROW_ON_ERROR),
+            'id' => $roundId,
+        ]);
+
+        $pdo->commit();
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+
+    $updatedRound = fetchRoundRow($pdo, $roundId, $userId);
+    $updatedRound['id'] = (int) $updatedRound['id'];
+    $updatedRound['total_holes'] = (int) $updatedRound['total_holes'];
+    $updatedRound['user_id'] = (int) ($updatedRound['user_id'] ?? 0);
+    $updatedRound['players'] = fetchRoundPlayers($pdo, $roundId);
+    unset($updatedRound['strokes_json']);
+
+    sendJson([
+        'ok' => true,
+        'round' => $updatedRound,
+    ]);
+}
+
+function deleteFinishedRound(PDO $pdo, array $input): void
+{
+    $userId = requireAuthenticatedUserId();
+    $roundId = (int) ($input['round_id'] ?? 0);
+    if ($roundId <= 0) {
+        sendJson(['error' => 'Ogiltigt rond-id.'], 422);
+    }
+
+    $round = fetchRoundRow($pdo, $roundId, $userId);
+    if (empty($round['ended_at'])) {
+        sendJson(['error' => 'Bara avslutade ronder kan tas bort.'], 422);
+    }
+
+    $stmt = $pdo->prepare('DELETE FROM rounds WHERE id = :id');
+    $stmt->execute(['id' => $roundId]);
+
+    sendJson(['ok' => true]);
+}
+
+function fetchRoundRow(PDO $pdo, int $roundId, ?int $userId = null): array
+{
+    if ($userId === null) {
+        $stmt = $pdo->prepare('SELECT * FROM rounds WHERE id = :id LIMIT 1');
+        $stmt->execute(['id' => $roundId]);
+    } else {
+        $stmt = $pdo->prepare('SELECT * FROM rounds WHERE id = :id AND user_id = :user_id LIMIT 1');
+        $stmt->execute([
+            'id' => $roundId,
+            'user_id' => $userId,
+        ]);
+    }
+
+    $round = $stmt->fetch();
+
+    if (!$round) {
+        sendJson(['error' => 'Ronden hittades inte.'], 404);
+    }
+
+    return $round;
+}
+
+function fetchRoundPlayers(PDO $pdo, int $roundId, bool $withRaw = false): array
+{
+    $stmt = $pdo->prepare(
+        'SELECT id, player_name, golf_id, is_owner, strokes_json
+         FROM round_players
+         WHERE round_id = :round_id
+         ORDER BY is_owner DESC, id ASC'
+    );
+    $stmt->execute(['round_id' => $roundId]);
+    $players = $stmt->fetchAll();
+
+    foreach ($players as &$player) {
+        $player['id'] = (int) $player['id'];
+        $player['is_owner'] = (bool) $player['is_owner'];
+        if (!$withRaw) {
+            $player['strokes'] = json_decode($player['strokes_json'], true, 512, JSON_THROW_ON_ERROR);
+            unset($player['strokes_json']);
+        }
+    }
+
+    return $players;
+}
+
+function fetchOwnerStrokes(PDO $pdo, int $roundId): array
+{
+    $stmt = $pdo->prepare(
+        'SELECT strokes_json
+         FROM round_players
+         WHERE round_id = :round_id AND is_owner = 1
+         ORDER BY id ASC
+         LIMIT 1'
+    );
+    $stmt->execute(['round_id' => $roundId]);
+    $row = $stmt->fetch();
+
+    if (!$row) {
+        return [];
+    }
+
+    return json_decode($row['strokes_json'], true, 512, JSON_THROW_ON_ERROR);
+}
+
+function insertRoundPlayer(
+    PDO $pdo,
+    int $roundId,
+    string $name,
+    string $golfId,
+    bool $isOwner,
+    array $strokes
+): void {
+    $stmt = $pdo->prepare(
+        'INSERT INTO round_players (round_id, player_name, golf_id, is_owner, strokes_json)
+         VALUES (:round_id, :player_name, :golf_id, :is_owner, :strokes_json)'
+    );
+    $stmt->execute([
+        'round_id' => $roundId,
+        'player_name' => $name,
+        'golf_id' => $golfId,
+        'is_owner' => $isOwner ? 1 : 0,
+        'strokes_json' => json_encode($strokes, JSON_THROW_ON_ERROR),
+    ]);
+}
+
+function getAuthenticatedUserId(): ?int
+{
+    $userId = $_SESSION['user_id'] ?? null;
+    if (!is_int($userId) && !is_numeric($userId)) {
+        return null;
+    }
+
+    $id = (int) $userId;
+    return $id > 0 ? $id : null;
+}
+
+function requireAuthenticatedUserId(): int
+{
+    $userId = getAuthenticatedUserId();
+    if ($userId === null) {
+        sendJson(['error' => 'Du måste logga in.'], 401);
+    }
+
+    return $userId;
+}
+
+function fetchUserById(PDO $pdo, int $userId, bool $withPassword = false): array
+{
+    $fields = $withPassword
+        ? 'id, name, email, golf_id, password_hash'
+        : 'id, name, email, golf_id';
+
+    $stmt = $pdo->prepare("SELECT {$fields} FROM users WHERE id = :id LIMIT 1");
+    $stmt->execute(['id' => $userId]);
+    $user = $stmt->fetch();
+
+    if (!$user) {
+        sendJson(['error' => 'Användaren hittades inte.'], 404);
+    }
+
+    $user['id'] = (int) $user['id'];
+    return $user;
+}
+
+function sendJson(array $payload, int $statusCode = 200): void
+{
+    http_response_code($statusCode);
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}

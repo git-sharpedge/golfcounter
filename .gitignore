@@ -1,0 +1,28 @@
+# Local secrets and machine-specific config
+config.php
+.env
+.env.*
+
+# Runtime artifacts
+*.log
+tmp/
+temp/
+cache/
+sessions/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor/IDE
+.vscode/
+.idea/
+
+# Dependency directories (if added later)
+vendor/
+node_modules/
+
+# Package manager logs
+npm-debug.log*
+yarn-error.log*
