@@ -1319,6 +1319,7 @@ function setupDonationUi() {
 
     const swishPayload = {
         payee: "0730746793",
+        amount: "20",
         message: "Donation: GolfCounter",
         format: "png",
     };
