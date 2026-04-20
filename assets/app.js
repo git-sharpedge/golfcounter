@@ -10,6 +10,16 @@ const views = Array.from(document.querySelectorAll(".view"));
 const infoDialog = document.getElementById("infoDialog");
 const infoOpenBtn = document.getElementById("infoOpenBtn");
 const infoCloseBtn = document.getElementById("infoCloseBtn");
+const forgotPasswordDialog = document.getElementById("forgotPasswordDialog");
+const forgotPasswordOpenBtn = document.getElementById("forgotPasswordOpenBtn");
+const forgotPasswordCancelBtn = document.getElementById("forgotPasswordCancelBtn");
+const forgotPasswordForm = document.getElementById("forgotPasswordForm");
+const forgotPasswordEmailInput = document.getElementById("forgotPasswordEmail");
+const forgotPasswordGolfIdInput = document.getElementById("forgotPasswordGolfId");
+const forgotPasswordNewPasswordInput = document.getElementById("forgotPasswordNewPassword");
+const forgotPasswordConfirmPasswordInput = document.getElementById("forgotPasswordConfirmPassword");
+const forgotPasswordGolfIdError = document.getElementById("forgotPasswordGolfIdError");
+const forgotPasswordConfirmError = document.getElementById("forgotPasswordConfirmError");
 const appDialog = document.getElementById("appDialog");
 const appDialogTitle = document.getElementById("appDialogTitle");
 const appDialogMessage = document.getElementById("appDialogMessage");
@@ -18,9 +28,14 @@ const appDialogCancelBtn = document.getElementById("appDialogCancelBtn");
 const menuToggleBtn = document.getElementById("menuToggleBtn");
 const menuDrawer = document.getElementById("menuDrawer");
 const appMenu = document.getElementById("appMenu");
+const menuDonateLink = document.getElementById("menuDonateLink");
 const languageSelect = document.getElementById("languageSelect");
 const swishDonateLink = document.getElementById("swishDonateLink");
 const donationQrBlock = document.getElementById("donationQrBlock");
+const registerEmailInput = document.getElementById("registerEmail");
+const registerGolfIdInput = document.getElementById("registerGolfId");
+const registerEmailError = document.getElementById("registerEmailError");
+const registerGolfIdError = document.getElementById("registerGolfIdError");
 
 const setupSection = document.getElementById("setupSection");
 const noRoundNotice = document.getElementById("noRoundNotice");
@@ -58,12 +73,20 @@ const I18N = {
         emailLabel: "E-post",
         emailPlaceholder: "name@example.com",
         golfIdLabel: "Golf-ID",
+        golfIdPlaceholder: "YYMMDD-NNN",
         passwordLabel: "Lösenord",
+        forgotPasswordLink: "Glömt lösenord?",
+        forgotPasswordTitle: "Återställ lösenord",
+        forgotPasswordDescription: "Fyll i e-post och Golf-ID för kontot, och välj ett nytt lösenord.",
+        confirmPasswordLabel: "Bekräfta nytt lösenord",
+        resetPasswordButton: "Spara nytt lösenord",
+        registerConsentText: "Jag godkänner att Golfcounter lagrar förnamn, efternamn, golf-ID, namn på golfbana, antal slag och tidpunkt för att tjänsten ska fungera.",
         loginButton: "Logga in",
         registerButton: "Registrera",
         menuNewRound: "Ny rond",
         menuRounds: "Rundor",
         menuAccount: "Konto",
+        menuDonate: "Donera",
         noRoundTitle: "Ingen pågående rond",
         noRoundText: "Starta en ny rond för att börja registrera slag.",
         startRoundTitle: "Starta ny rond",
@@ -97,6 +120,13 @@ const I18N = {
         donationQrText: "Skanna QR-koden för att donera via Swish.",
         loginFailed: "Kunde inte logga in: {error}",
         registerFailed: "Kunde inte registrera konto: {error}",
+        registerConsentRequired: "Du måste godkänna datalagring för att skapa konto.",
+        passwordStrengthRequired: "Lösenord måste vara minst 12 tecken och innehålla minst tre av: stora bokstäver, små bokstäver, siffror eller specialtecken.",
+        invalidEmailMessage: "Ange en giltig e-postadress, till exempel namn@example.com.",
+        invalidGolfIdMessage: "Ange Golf-ID i formatet YYMMDD-NNN (6 siffror, bindestreck, 3 siffror).",
+        forgotPasswordMismatch: "Nytt lösenord och bekräftelse måste vara identiska.",
+        forgotPasswordSuccess: "Lösenordet är uppdaterat. Du kan nu logga in.",
+        forgotPasswordFailed: "Kunde inte återställa lösenord: {error}",
         accountUpdated: "Konto uppdaterat.",
         saveAccountFailed: "Kunde inte spara konto: {error}",
         logoutFailed: "Kunde inte logga ut: {error}",
@@ -150,12 +180,20 @@ const I18N = {
         emailLabel: "Email",
         emailPlaceholder: "name@example.com",
         golfIdLabel: "Golf ID",
+        golfIdPlaceholder: "YYMMDD-NNN",
         passwordLabel: "Password",
+        forgotPasswordLink: "Forgot password?",
+        forgotPasswordTitle: "Reset password",
+        forgotPasswordDescription: "Enter the account email and Golf ID, then choose a new password.",
+        confirmPasswordLabel: "Confirm new password",
+        resetPasswordButton: "Save new password",
+        registerConsentText: "I consent to Golfcounter storing first name, last name, Golf ID, golf course name, stroke count, and timestamps so the service can function.",
         loginButton: "Sign in",
         registerButton: "Register",
         menuNewRound: "New round",
         menuRounds: "Rounds",
         menuAccount: "Account",
+        menuDonate: "Donate",
         noRoundTitle: "No active round",
         noRoundText: "Start a new round to begin tracking strokes.",
         startRoundTitle: "Start new round",
@@ -189,6 +227,13 @@ const I18N = {
         donationQrText: "Scan the QR code to donate via Swish.",
         loginFailed: "Could not sign in: {error}",
         registerFailed: "Could not register account: {error}",
+        registerConsentRequired: "You must approve data storage to create an account.",
+        passwordStrengthRequired: "Password must be at least 12 characters and include at least three of: uppercase letters, lowercase letters, numbers, or special characters.",
+        invalidEmailMessage: "Enter a valid email address, for example name@example.com.",
+        invalidGolfIdMessage: "Enter Golf ID in the format YYMMDD-NNN (6 digits, hyphen, 3 digits).",
+        forgotPasswordMismatch: "New password and confirmation must match.",
+        forgotPasswordSuccess: "Password updated. You can now sign in.",
+        forgotPasswordFailed: "Could not reset password: {error}",
         accountUpdated: "Account updated.",
         saveAccountFailed: "Could not save account: {error}",
         logoutFailed: "Could not sign out: {error}",
@@ -270,6 +315,7 @@ if (languageSelect) {
 
 applyStaticTranslations();
 setupDonationUi();
+initializeFieldValidation();
 
 loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -287,17 +333,125 @@ loginForm.addEventListener("submit", async (event) => {
     }
 });
 
+if (forgotPasswordOpenBtn && forgotPasswordDialog) {
+    forgotPasswordOpenBtn.addEventListener("click", () => {
+        if (typeof forgotPasswordDialog.showModal === "function") {
+            forgotPasswordDialog.showModal();
+        }
+    });
+}
+
+if (forgotPasswordCancelBtn && forgotPasswordDialog) {
+    forgotPasswordCancelBtn.addEventListener("click", () => {
+        forgotPasswordDialog.close();
+    });
+}
+
+if (forgotPasswordDialog) {
+    forgotPasswordDialog.addEventListener("click", (event) => {
+        const bounds = forgotPasswordDialog.getBoundingClientRect();
+        const outsideDialog =
+            event.clientX < bounds.left ||
+            event.clientX > bounds.right ||
+            event.clientY < bounds.top ||
+            event.clientY > bounds.bottom;
+        if (outsideDialog) {
+            forgotPasswordDialog.close();
+        }
+    });
+}
+
+if (forgotPasswordForm) {
+    forgotPasswordForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const email = forgotPasswordEmailInput.value.trim();
+        const golfId = normalizeGolfId(forgotPasswordGolfIdInput.value.trim());
+        const newPassword = forgotPasswordNewPasswordInput.value;
+        const confirmPassword = forgotPasswordConfirmPasswordInput.value;
+        forgotPasswordGolfIdInput.value = golfId;
+
+        const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        if (!isEmailValid) {
+            await showAppAlert(t("invalidEmailMessage"));
+            return;
+        }
+
+        const isGolfIdValid = validateGolfIdField(
+            forgotPasswordGolfIdInput,
+            forgotPasswordGolfIdError,
+            golfId,
+            false
+        );
+        if (!isGolfIdValid) {
+            return;
+        }
+
+        if (!isStrongPassword(newPassword)) {
+            await showAppAlert(t("passwordStrengthRequired"));
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            showInputError(
+                forgotPasswordConfirmPasswordInput,
+                forgotPasswordConfirmError,
+                t("forgotPasswordMismatch")
+            );
+            return;
+        }
+        clearInputError(forgotPasswordConfirmPasswordInput, forgotPasswordConfirmError);
+
+        try {
+            await postApi("forgot_password", {
+                email,
+                golf_id: golfId,
+                new_password: newPassword,
+            });
+            forgotPasswordForm.reset();
+            clearInputError(forgotPasswordGolfIdInput, forgotPasswordGolfIdError);
+            clearInputError(forgotPasswordConfirmPasswordInput, forgotPasswordConfirmError);
+            forgotPasswordDialog.close();
+            await showAppAlert(t("forgotPasswordSuccess"));
+        } catch (error) {
+            await showAppAlert(t("forgotPasswordFailed", { error: error.message }));
+        }
+    });
+}
+
 registerForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    const consentAccepted = document.getElementById("registerConsent").checked;
+    const password = document.getElementById("registerPassword").value;
+    const email = registerEmailInput.value.trim();
+    const golfId = registerGolfIdInput.value.trim();
+
+    const isEmailValid = validateRegisterEmail(email);
+    const isGolfIdValid = validateGolfIdField(registerGolfIdInput, registerGolfIdError, golfId, true);
+    if (!isEmailValid || !isGolfIdValid) {
+        return;
+    }
+    if (!consentAccepted) {
+        await showAppAlert(t("registerConsentRequired"));
+        return;
+    }
+    if (!isStrongPassword(password)) {
+        await showAppAlert(t("passwordStrengthRequired"));
+        return;
+    }
+
     try {
         const response = await postApi("register", {
             name: document.getElementById("registerName").value.trim(),
-            email: document.getElementById("registerEmail").value.trim(),
-            golf_id: document.getElementById("registerGolfId").value.trim(),
-            password: document.getElementById("registerPassword").value,
+            email,
+            golf_id: normalizeGolfId(golfId),
+            password,
+            consent_accepted: consentAccepted,
         });
         setUser(response.user);
         registerForm.reset();
+        clearInputError(registerEmailInput, registerEmailError);
+        clearInputError(registerGolfIdInput, registerGolfIdError);
         await restoreRoundFromLocalStorage();
         await refreshRounds();
     } catch (error) {
@@ -307,12 +461,18 @@ registerForm.addEventListener("submit", async (event) => {
 
 accountForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    const newPassword = document.getElementById("accountNewPassword").value;
+    if (newPassword && !isStrongPassword(newPassword)) {
+        await showAppAlert(t("passwordStrengthRequired"));
+        return;
+    }
+
     try {
         const response = await postApi("update_account", {
             name: document.getElementById("accountName").value.trim(),
             golf_id: document.getElementById("accountGolfId").value.trim(),
             current_password: document.getElementById("accountCurrentPassword").value,
-            new_password: document.getElementById("accountNewPassword").value,
+            new_password: newPassword,
         });
         setUser(response.user);
         document.getElementById("accountCurrentPassword").value = "";
@@ -336,9 +496,14 @@ logoutBtn.addEventListener("click", async () => {
 
 menuButtons.forEach((button) => {
     button.addEventListener("click", async () => {
-        showView(button.dataset.view);
+        const targetView = button.dataset.view;
+        if (!targetView) {
+            return;
+        }
+
+        showView(targetView);
         closeMenuDrawer();
-        if (button.dataset.view === "historyView") {
+        if (targetView === "historyView") {
             await refreshRounds();
         }
     });
@@ -360,6 +525,12 @@ if (menuToggleBtn && menuDrawer) {
         if (!insideDrawer && !insideToggle) {
             closeMenuDrawer();
         }
+    });
+}
+
+if (menuDonateLink) {
+    menuDonateLink.addEventListener("click", () => {
+        closeMenuDrawer();
     });
 }
 
@@ -539,14 +710,18 @@ function addTeammateRow(player = null) {
     const row = teammateTemplate.content.firstElementChild.cloneNode(true);
     const nameInput = row.querySelector(".teammate-name");
     const golfInput = row.querySelector(".teammate-golfid");
+    const golfError = row.querySelector(".teammate-golfid-error");
     const removeButton = row.querySelector(".remove-teammate-btn");
     nameInput.placeholder = t("nameLabel");
-    golfInput.placeholder = t("golfIdLabel");
+    golfInput.placeholder = t("golfIdPlaceholder");
 
     if (player) {
         nameInput.value = player.player_name || "";
-        golfInput.value = player.golf_id || "";
+        golfInput.value = normalizeGolfId(player.golf_id || "");
     }
+
+    bindGolfIdInput(golfInput, golfError, true);
+    validateGolfIdField(golfInput, golfError, golfInput.value, true);
 
     removeButton.addEventListener("click", () => {
         row.remove();
@@ -558,12 +733,34 @@ function addTeammateRow(player = null) {
 
 async function startRound() {
     const formData = new FormData(setupForm);
-    const teammates = Array.from(teammatesList.querySelectorAll(".teammate-row"))
-        .map((row) => ({
-            player_name: row.querySelector(".teammate-name").value.trim(),
-            golf_id: row.querySelector(".teammate-golfid").value.trim(),
-        }))
-        .filter((player) => player.player_name !== "");
+    const teammateRows = Array.from(teammatesList.querySelectorAll(".teammate-row"));
+    const teammates = [];
+    let hasInvalidGolfId = false;
+
+    teammateRows.forEach((row) => {
+        const name = row.querySelector(".teammate-name").value.trim();
+        const golfInput = row.querySelector(".teammate-golfid");
+        const golfError = row.querySelector(".teammate-golfid-error");
+        const golfIdRaw = golfInput.value.trim();
+        const golfId = normalizeGolfId(golfIdRaw);
+        golfInput.value = golfId;
+
+        const isGolfIdValid = validateGolfIdField(golfInput, golfError, golfId, true);
+        if (!isGolfIdValid) {
+            hasInvalidGolfId = true;
+        }
+
+        if (name !== "") {
+            teammates.push({
+                player_name: name,
+                golf_id: golfId,
+            });
+        }
+    });
+
+    if (hasInvalidGolfId) {
+        return;
+    }
 
     if (teammates.length > 3) {
         await showAppAlert(t("maxPlayers"));
@@ -1241,6 +1438,134 @@ function mapLanguageCode(code) {
     return null;
 }
 
+function initializeFieldValidation() {
+    if (registerEmailInput) {
+        registerEmailInput.addEventListener("input", () => {
+            validateRegisterEmail(registerEmailInput.value.trim());
+        });
+        registerEmailInput.addEventListener("blur", () => {
+            validateRegisterEmail(registerEmailInput.value.trim());
+        });
+    }
+
+    if (registerGolfIdInput) {
+        bindGolfIdInput(registerGolfIdInput, registerGolfIdError, true);
+    }
+
+    if (forgotPasswordGolfIdInput) {
+        bindGolfIdInput(forgotPasswordGolfIdInput, forgotPasswordGolfIdError, false);
+    }
+
+    if (forgotPasswordConfirmPasswordInput && forgotPasswordNewPasswordInput) {
+        forgotPasswordConfirmPasswordInput.addEventListener("input", () => {
+            if (forgotPasswordConfirmPasswordInput.value === forgotPasswordNewPasswordInput.value) {
+                clearInputError(forgotPasswordConfirmPasswordInput, forgotPasswordConfirmError);
+            }
+        });
+    }
+
+    if (forgotPasswordNewPasswordInput && forgotPasswordConfirmPasswordInput) {
+        forgotPasswordNewPasswordInput.addEventListener("input", () => {
+            if (forgotPasswordConfirmPasswordInput.value === forgotPasswordNewPasswordInput.value) {
+                clearInputError(forgotPasswordConfirmPasswordInput, forgotPasswordConfirmError);
+            }
+        });
+    }
+}
+
+function bindGolfIdInput(inputElement, errorElement, allowEmpty) {
+    if (!inputElement) {
+        return;
+    }
+
+    inputElement.addEventListener("input", () => {
+        const previousValue = inputElement.value;
+        const formattedValue = normalizeGolfId(previousValue);
+        inputElement.value = formattedValue;
+        validateGolfIdField(inputElement, errorElement, formattedValue, allowEmpty);
+    });
+
+    inputElement.addEventListener("blur", () => {
+        const formattedValue = normalizeGolfId(inputElement.value);
+        inputElement.value = formattedValue;
+        validateGolfIdField(inputElement, errorElement, formattedValue, allowEmpty);
+    });
+}
+
+function normalizeGolfId(rawValue) {
+    const digits = String(rawValue ?? "").replace(/\D/g, "").slice(0, 9);
+    if (digits.length <= 6) {
+        return digits;
+    }
+    return `${digits.slice(0, 6)}-${digits.slice(6)}`;
+}
+
+function validateRegisterEmail(value) {
+    if (value === "") {
+        showInputError(registerEmailInput, registerEmailError, t("invalidEmailMessage"));
+        return false;
+    }
+
+    const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+    if (!isValid) {
+        showInputError(registerEmailInput, registerEmailError, t("invalidEmailMessage"));
+        return false;
+    }
+
+    clearInputError(registerEmailInput, registerEmailError);
+    return true;
+}
+
+function validateGolfIdField(inputElement, errorElement, value, allowEmpty) {
+    const normalizedValue = String(value ?? "").trim();
+    if (allowEmpty && normalizedValue === "") {
+        clearInputError(inputElement, errorElement);
+        return true;
+    }
+
+    const isValid = /^\d{6}-\d{3}$/.test(normalizedValue);
+    if (!isValid) {
+        showInputError(inputElement, errorElement, t("invalidGolfIdMessage"));
+        return false;
+    }
+
+    clearInputError(inputElement, errorElement);
+    return true;
+}
+
+function showInputError(inputElement, errorElement, message) {
+    if (errorElement) {
+        errorElement.textContent = message;
+    }
+    if (inputElement) {
+        inputElement.classList.add("input-invalid");
+        inputElement.setAttribute("aria-invalid", "true");
+    }
+}
+
+function clearInputError(inputElement, errorElement) {
+    if (errorElement) {
+        errorElement.textContent = "";
+    }
+    if (inputElement) {
+        inputElement.classList.remove("input-invalid");
+        inputElement.removeAttribute("aria-invalid");
+    }
+}
+
+function isStrongPassword(password) {
+    if (typeof password !== "string" || password.length < 12) {
+        return false;
+    }
+
+    let matched = 0;
+    matched += /[A-Z]/.test(password) ? 1 : 0;
+    matched += /[a-z]/.test(password) ? 1 : 0;
+    matched += /\d/.test(password) ? 1 : 0;
+    matched += /[^A-Za-z0-9]/.test(password) ? 1 : 0;
+    return matched >= 3;
+}
+
 function t(key, params = {}) {
     const dictionary = I18N[state.language] || I18N["sv-SE"];
     let value = dictionary[key] ?? I18N["sv-SE"][key] ?? key;
@@ -1318,10 +1643,16 @@ function setupDonationUi() {
     }
 
     const swishPayload = {
-        payee: "0730746793",
-        amount: "20",
-        message: "Donation: GolfCounter",
-        format: "png",
+        version: 1,
+        payee: {
+            value: "0730746793",
+        },
+        amount: {
+            value: 20,
+        },
+        message: {
+            value: "Donation: GolfCounter",
+        },
     };
     const swishUrl = `swish://payment?data=${encodeURIComponent(JSON.stringify(swishPayload))}`;
     swishDonateLink.href = swishUrl;

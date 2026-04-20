@@ -25,6 +25,9 @@ try {
         case 'login':
             loginUser($pdo, $input);
             break;
+        case 'forgot_password':
+            forgotPassword($pdo, $input);
+            break;
         case 'logout':
             logoutUser();
             break;
@@ -68,9 +71,17 @@ function registerUser(PDO $pdo, array $input): void
     $email = strtolower(trim((string) ($input['email'] ?? '')));
     $golfId = trim((string) ($input['golf_id'] ?? ''));
     $password = (string) ($input['password'] ?? '');
+    $consentAccepted = filter_var($input['consent_accepted'] ?? false, FILTER_VALIDATE_BOOL);
+    $consentText = 'Jag godkänner lagring av förnamn, efternamn, golf-ID, golfbana, slag och tidpunkt för ronder.';
 
-    if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($password) < 6) {
+    if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
         sendJson(['error' => 'Ogiltig registrering.'], 422);
+    }
+    if (!isStrongPassword($password)) {
+        sendJson(['error' => 'Lösenord måste vara minst 12 tecken och innehålla minst tre av: stora bokstäver, små bokstäver, siffror eller specialtecken.'], 422);
+    }
+    if (!$consentAccepted) {
+        sendJson(['error' => 'Du måste godkänna datalagring för att skapa konto.'], 422);
     }
 
     $stmt = $pdo->prepare('SELECT id FROM users WHERE email = :email LIMIT 1');
@@ -80,14 +91,16 @@ function registerUser(PDO $pdo, array $input): void
     }
 
     $insert = $pdo->prepare(
-        'INSERT INTO users (name, email, golf_id, password_hash)
-         VALUES (:name, :email, :golf_id, :password_hash)'
+        'INSERT INTO users (name, email, golf_id, password_hash, consent_accepted_at, consent_text)
+         VALUES (:name, :email, :golf_id, :password_hash, :consent_accepted_at, :consent_text)'
     );
     $insert->execute([
         'name' => $name,
         'email' => $email,
         'golf_id' => $golfId,
         'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+        'consent_accepted_at' => (new DateTimeImmutable('now'))->format('Y-m-d H:i:s'),
+        'consent_text' => $consentText,
     ]);
 
     $userId = (int) $pdo->lastInsertId();
@@ -127,6 +140,42 @@ function loginUser(PDO $pdo, array $input): void
             'golf_id' => $user['golf_id'],
         ],
     ]);
+}
+
+function forgotPassword(PDO $pdo, array $input): void
+{
+    $email = strtolower(trim((string) ($input['email'] ?? '')));
+    $golfId = trim((string) ($input['golf_id'] ?? ''));
+    $newPassword = (string) ($input['new_password'] ?? '');
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        sendJson(['error' => 'Ogiltig e-postadress.'], 422);
+    }
+    if (!isValidGolfId($golfId)) {
+        sendJson(['error' => 'Golf-ID måste vara i formatet YYMMDD-NNN.'], 422);
+    }
+    if (!isStrongPassword($newPassword)) {
+        sendJson(['error' => 'Nytt lösenord måste vara minst 12 tecken och innehålla minst tre av: stora bokstäver, små bokstäver, siffror eller specialtecken.'], 422);
+    }
+
+    $stmt = $pdo->prepare('SELECT id FROM users WHERE email = :email AND golf_id = :golf_id LIMIT 1');
+    $stmt->execute([
+        'email' => $email,
+        'golf_id' => $golfId,
+    ]);
+    $user = $stmt->fetch();
+
+    if (!$user) {
+        sendJson(['error' => 'Ingen användare hittades med angiven e-post och Golf-ID.'], 404);
+    }
+
+    $update = $pdo->prepare('UPDATE users SET password_hash = :password_hash WHERE id = :id');
+    $update->execute([
+        'password_hash' => password_hash($newPassword, PASSWORD_DEFAULT),
+        'id' => (int) $user['id'],
+    ]);
+
+    sendJson(['ok' => true]);
 }
 
 function logoutUser(): void
@@ -170,8 +219,8 @@ function updateAccount(PDO $pdo, array $input): void
         if (!password_verify($currentPassword, $user['password_hash'])) {
             sendJson(['error' => 'Nuvarande lösenord är fel.'], 401);
         }
-        if (strlen($newPassword) < 6) {
-            sendJson(['error' => 'Nytt lösenord måste vara minst 6 tecken.'], 422);
+        if (!isStrongPassword($newPassword)) {
+            sendJson(['error' => 'Nytt lösenord måste vara minst 12 tecken och innehålla minst tre av: stora bokstäver, små bokstäver, siffror eller specialtecken.'], 422);
         }
     }
 
@@ -636,6 +685,26 @@ function fetchUserById(PDO $pdo, int $userId, bool $withPassword = false): array
 
     $user['id'] = (int) $user['id'];
     return $user;
+}
+
+function isValidGolfId(string $golfId): bool
+{
+    return (bool) preg_match('/^\d{6}-\d{3}$/', $golfId);
+}
+
+function isStrongPassword(string $password): bool
+{
+    if (strlen($password) < 12) {
+        return false;
+    }
+
+    $rulesMatched = 0;
+    $rulesMatched += preg_match('/[A-Z]/', $password) ? 1 : 0;
+    $rulesMatched += preg_match('/[a-z]/', $password) ? 1 : 0;
+    $rulesMatched += preg_match('/\d/', $password) ? 1 : 0;
+    $rulesMatched += preg_match('/[^A-Za-z0-9]/', $password) ? 1 : 0;
+
+    return $rulesMatched >= 3;
 }
 
 function sendJson(array $payload, int $statusCode = 200): void

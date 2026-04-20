@@ -42,6 +42,8 @@ function initializeSchema(PDO $pdo): void
             email VARCHAR(191) NOT NULL UNIQUE,
             golf_id VARCHAR(50) DEFAULT '',
             password_hash VARCHAR(255) NOT NULL,
+            consent_accepted_at DATETIME NULL,
+            consent_text VARCHAR(255) NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -88,6 +90,7 @@ function initializeSchema(PDO $pdo): void
 
     ensureRoundsUserIdColumn($pdo);
     ensureRoundsHoleDurationsColumn($pdo);
+    ensureUsersConsentColumns($pdo);
 }
 
 function ensureRoundsUserIdColumn(PDO $pdo): void
@@ -114,4 +117,19 @@ function ensureRoundsHoleDurationsColumn(PDO $pdo): void
     }
 
     $pdo->exec('ALTER TABLE rounds ADD COLUMN hole_durations_json LONGTEXT NULL AFTER strokes_json');
+}
+
+function ensureUsersConsentColumns(PDO $pdo): void
+{
+    $stmt = $pdo->query("SHOW COLUMNS FROM users LIKE 'consent_accepted_at'");
+    $acceptedAtExists = $stmt->fetch();
+    if (!$acceptedAtExists) {
+        $pdo->exec('ALTER TABLE users ADD COLUMN consent_accepted_at DATETIME NULL AFTER password_hash');
+    }
+
+    $stmt = $pdo->query("SHOW COLUMNS FROM users LIKE 'consent_text'");
+    $consentTextExists = $stmt->fetch();
+    if (!$consentTextExists) {
+        $pdo->exec('ALTER TABLE users ADD COLUMN consent_text VARCHAR(255) NULL AFTER consent_accepted_at');
+    }
 }

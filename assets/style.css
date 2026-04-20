@@ -178,6 +178,34 @@ label {
     font-weight: 600;
 }
 
+.field-error {
+    color: #b71c1c;
+    font-size: 0.82rem;
+    font-weight: 600;
+    min-height: 1.1em;
+}
+
+.input-invalid {
+    border-color: #b71c1c !important;
+    background: #fff8f8;
+}
+
+.consent-check {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: start;
+    gap: 10px;
+    font-weight: 500;
+    color: #28422c;
+    line-height: 1.4;
+}
+
+.consent-check input[type="checkbox"] {
+    margin-top: 2px;
+    width: 18px;
+    height: 18px;
+}
+
 input[type="text"] {
     border: 1px solid #d0d9d1;
     border-radius: 10px;
@@ -218,6 +246,16 @@ legend {
 button {
     border: none;
     cursor: pointer;
+}
+
+.text-btn {
+    border: none;
+    background: transparent;
+    color: var(--accent);
+    font-weight: 700;
+    text-align: left;
+    padding: 0;
+    text-decoration: underline;
 }
 
 .primary-btn,
@@ -269,6 +307,7 @@ button {
 .menu-btn {
     background: #e6eee7;
     color: #2d3d2f;
+    text-decoration: none;
     border-radius: 10px;
     padding: 11px 13px;
     font-weight: 700;
@@ -435,6 +474,11 @@ button {
     display: grid;
     grid-template-columns: 1fr;
     gap: 8px;
+}
+
+.teammate-golfid-wrap {
+    display: grid;
+    gap: 4px;
 }
 
 .player-picker {
@@ -640,7 +684,8 @@ button {
     }
 
     .teammate-row {
-        grid-template-columns: 1fr 1fr auto;
+        grid-template-columns: 1fr minmax(0, 1fr) auto;
+        align-items: start;
     }
 
     .player-buttons {

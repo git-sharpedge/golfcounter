@@ -59,6 +59,9 @@ declare(strict_types=1);
                     <i class="fa-solid fa-user-gear"></i> <span data-i18n="menuAccount">Konto</span>
                 </button>
             </nav>
+            <a id="menuDonateLink" class="menu-btn" href="#donationSection">
+                <i class="fa-solid fa-heart"></i> <span data-i18n="menuDonate">Donera</span>
+            </a>
         </div>
     </section>
 
@@ -78,6 +81,9 @@ declare(strict_types=1);
                 <button type="submit" class="primary-btn">
                     <i class="fa-solid fa-right-to-bracket"></i> <span data-i18n="loginButton">Logga in</span>
                 </button>
+                <button id="forgotPasswordOpenBtn" type="button" class="text-btn" data-i18n="forgotPasswordLink">
+                    Glömt lösenord?
+                </button>
             </form>
 
             <form id="registerForm">
@@ -89,14 +95,20 @@ declare(strict_types=1);
                 <label>
                     <span data-i18n="emailLabel">E-post</span>
                     <input type="email" id="registerEmail" data-i18n-placeholder="emailPlaceholder" placeholder="name@example.com" required>
+                    <small id="registerEmailError" class="field-error" aria-live="polite"></small>
                 </label>
                 <label>
                     <span data-i18n="golfIdLabel">Golf-ID</span>
-                    <input type="text" id="registerGolfId" maxlength="50" placeholder="SE-123456">
+                    <input type="text" id="registerGolfId" maxlength="10" data-i18n-placeholder="golfIdPlaceholder" placeholder="YYMMDD-NNN">
+                    <small id="registerGolfIdError" class="field-error" aria-live="polite"></small>
                 </label>
                 <label>
                     <span data-i18n="passwordLabel">Losenord</span>
-                    <input type="password" id="registerPassword" required minlength="6">
+                    <input type="password" id="registerPassword" required minlength="12">
+                </label>
+                <label class="consent-check">
+                    <input type="checkbox" id="registerConsent" required>
+                    <span data-i18n="registerConsentText">Jag godkänner att Golfcounter lagrar förnamn, efternamn, golf-ID, namn på golfbana, antal slag och tidpunkt för att tjänsten ska fungera.</span>
                 </label>
                 <button type="submit" class="primary-btn">
                     <i class="fa-solid fa-user-plus"></i> <span data-i18n="registerButton">Registrera</span>
@@ -210,7 +222,7 @@ declare(strict_types=1);
                     </label>
                     <label>
                         <span data-i18n="newPasswordLabel">Nytt lösenord</span>
-                        <input type="password" id="accountNewPassword" minlength="6">
+                        <input type="password" id="accountNewPassword" minlength="12">
                     </label>
                     <button type="submit" class="primary-btn">
                         <i class="fa-solid fa-floppy-disk"></i> <span data-i18n="saveAccountButton">Spara konto</span>
@@ -226,7 +238,7 @@ declare(strict_types=1);
 
 <footer class="site-credit">
     <p data-i18n="createdBy">Created by Sharp Edge AB</p>
-    <section class="donation-section">
+    <section id="donationSection" class="donation-section">
         <p class="donation-title" data-i18n="donationTitle">Support Golfcounter</p>
         <a id="swishDonateLink" class="primary-btn hidden" target="_blank" rel="noopener noreferrer">
             <i class="fa-solid fa-heart"></i> <span data-i18n="donateWithSwish">Donera med Swish</span>
@@ -243,6 +255,39 @@ declare(strict_types=1);
         <h2><i class="fa-solid fa-circle-info"></i> <span data-i18n="infoTitle">Om tjänsten</span></h2>
         <p data-i18n="infoText">Hantera rundor, medspelare och slag per hål i samma tjänst.</p>
         <button id="infoCloseBtn" type="button" class="primary-btn" data-i18n="closeButton">Stäng</button>
+    </article>
+</dialog>
+
+<dialog id="forgotPasswordDialog" class="info-dialog">
+    <article>
+        <h2><i class="fa-solid fa-key"></i> <span data-i18n="forgotPasswordTitle">Återställ lösenord</span></h2>
+        <p data-i18n="forgotPasswordDescription">Fyll i e-post och Golf-ID för kontot, och välj ett nytt lösenord.</p>
+        <form id="forgotPasswordForm">
+            <label>
+                <span data-i18n="emailLabel">E-post</span>
+                <input type="email" id="forgotPasswordEmail" data-i18n-placeholder="emailPlaceholder" placeholder="name@example.com" required>
+            </label>
+            <label>
+                <span data-i18n="golfIdLabel">Golf-ID</span>
+                <input type="text" id="forgotPasswordGolfId" data-i18n-placeholder="golfIdPlaceholder" placeholder="YYMMDD-NNN" maxlength="10" required>
+                <small id="forgotPasswordGolfIdError" class="field-error" aria-live="polite"></small>
+            </label>
+            <label>
+                <span data-i18n="newPasswordLabel">Nytt lösenord</span>
+                <input type="password" id="forgotPasswordNewPassword" minlength="12" required>
+            </label>
+            <label>
+                <span data-i18n="confirmPasswordLabel">Bekräfta nytt lösenord</span>
+                <input type="password" id="forgotPasswordConfirmPassword" minlength="12" required>
+                <small id="forgotPasswordConfirmError" class="field-error" aria-live="polite"></small>
+            </label>
+            <div class="dialog-actions">
+                <button id="forgotPasswordCancelBtn" type="button" class="ghost-btn" data-i18n="cancel">Avbryt</button>
+                <button type="submit" class="primary-btn">
+                    <i class="fa-solid fa-floppy-disk"></i> <span data-i18n="resetPasswordButton">Spara nytt lösenord</span>
+                </button>
+            </div>
+        </form>
     </article>
 </dialog>
 
@@ -269,7 +314,10 @@ declare(strict_types=1);
 <template id="teammateTemplate">
     <div class="teammate-row">
         <input type="text" class="teammate-name" placeholder="Namn" maxlength="120">
-        <input type="text" class="teammate-golfid" placeholder="Golf-ID" maxlength="50">
+        <div class="teammate-golfid-wrap">
+            <input type="text" class="teammate-golfid" placeholder="YYMMDD-NNN" maxlength="10">
+            <small class="field-error teammate-golfid-error" aria-live="polite"></small>
+        </div>
         <button type="button" class="ghost-btn remove-teammate-btn">
             <i class="fa-solid fa-trash"></i>
         </button>
