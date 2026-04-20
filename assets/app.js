@@ -10,6 +10,10 @@ const views = Array.from(document.querySelectorAll(".view"));
 const infoDialog = document.getElementById("infoDialog");
 const infoOpenBtn = document.getElementById("infoOpenBtn");
 const infoCloseBtn = document.getElementById("infoCloseBtn");
+const menuToggleBtn = document.getElementById("menuToggleBtn");
+const menuDrawer = document.getElementById("menuDrawer");
+const appMenu = document.getElementById("appMenu");
+const languageSelect = document.getElementById("languageSelect");
 
 const setupSection = document.getElementById("setupSection");
 const noRoundNotice = document.getElementById("noRoundNotice");
@@ -32,8 +36,190 @@ const holeItemTemplate = document.getElementById("holeItemTemplate");
 const roundsList = document.getElementById("roundsList");
 
 const STORAGE_KEY = "golfcounter_active_round_v2";
+const LANGUAGE_STORAGE_KEY = "golfcounter_language";
+
+const I18N = {
+    "sv-SE": {
+        appTitle: "SE Golfcounter",
+        showInfoAria: "Visa information",
+        menuToggleAria: "Öppna meny",
+        languageLabel: "Språk",
+        authTitle: "Logga in eller skapa konto",
+        loginTitle: "Logga in",
+        registerTitle: "Skapa konto",
+        nameLabel: "Namn",
+        emailLabel: "E-post",
+        emailPlaceholder: "name@example.com",
+        golfIdLabel: "Golf-ID",
+        passwordLabel: "Lösenord",
+        loginButton: "Logga in",
+        registerButton: "Registrera",
+        menuNewRound: "Ny rond",
+        menuRounds: "Rundor",
+        menuAccount: "Konto",
+        noRoundTitle: "Ingen pågående rond",
+        noRoundText: "Starta en ny rond för att börja registrera slag.",
+        startRoundTitle: "Starta ny rond",
+        courseNameLabel: "Banans namn",
+        courseNamePlaceholder: "Min Golfklubb",
+        holeCountLegend: "Antal hål",
+        holes9: "9 hål",
+        holes18: "18 hål",
+        teammatesTitle: "Medspelare",
+        addTeammateButton: "Lägg till medspelare (max 3)",
+        startRoundButton: "Starta rond",
+        ongoingRoundTitle: "Pågående rond",
+        finishRoundButton: "Avsluta rond",
+        activePlayerLabel: "Aktiv spelare",
+        strokesSoFar: "Slag hittills",
+        allRoundsTitle: "Alla rundor",
+        latestFirstText: "Senaste ronden visas högst upp.",
+        accountTitle: "Kontohantering",
+        currentPasswordLabel: "Nuvarande lösenord (krävs endast vid byte)",
+        newPasswordLabel: "Nytt lösenord",
+        saveAccountButton: "Spara konto",
+        logoutButton: "Logga ut",
+        infoTitle: "Om tjänsten",
+        infoText: "Hantera rundor, medspelare och slag per hål i samma tjänst.",
+        closeButton: "Stäng",
+        createdBy: "Created by Sharp Edge AB",
+        loginFailed: "Kunde inte logga in: {error}",
+        registerFailed: "Kunde inte registrera konto: {error}",
+        accountUpdated: "Konto uppdaterat.",
+        saveAccountFailed: "Kunde inte spara konto: {error}",
+        logoutFailed: "Kunde inte logga ut: {error}",
+        maxPlayers: "Max 4 spelare per rond (du + 3 medspelare).",
+        startRoundFailed: "Kunde inte starta rond: {error}",
+        switchHoleFailed: "Kunde inte byta hål: {error}",
+        finishConfirm: "Vill du avsluta ronden nu?",
+        finishSaved: "Ronden är avslutad och sparad.",
+        finishFailed: "Kunde inte avsluta ronden: {error}",
+        noRounds: "Inga rundor sparade än.",
+        roundsLoadFailed: "Kunde inte läsa rundor: {error}",
+        detailsShow: "Visa detaljer",
+        detailsHide: "Dölj detaljer",
+        detailsFailed: "Kunde inte visa detaljer: {error}",
+        detailsLoading: "Laddar detaljer...",
+        editRound: "Redigera",
+        saveChanges: "Spara ändringar",
+        cancel: "Avbryt",
+        deleteRound: "Ta bort",
+        deleteConfirm: "Vill du ta bort den här avslutade ronden?",
+        deleteFailed: "Kunde inte ta bort ronden: {error}",
+        saveEditsFailed: "Kunde inte spara ändringar: {error}",
+        invalidStrokes: "Alla slag måste vara heltal 0 eller större.",
+        loggedInAs: "Inloggad som {email}",
+        youSuffix: " (du)",
+        ongoing: "Pågår",
+        ended: "Avslutad: {time}",
+        startLabel: "Start: {time}",
+        holesPlayers: "{holes} hål • {players} spelare",
+        holeLabel: "Hål {number}",
+        strokesLabel: "{strokes} slag",
+        minutesSeconds: "{m}m {s}s",
+        holeHeader: "Hål",
+        timeHeader: "Tid",
+        summaryTitle: "Summering",
+        summaryPartHeader: "Del",
+        summaryFront9: "Första 9",
+        summaryBack9: "Sista 9",
+        summaryTotal18: "Totalt 18",
+        summaryTotal9: "Totalt 9",
+    },
+    "en-GB": {
+        appTitle: "SE Golfcounter",
+        showInfoAria: "Show information",
+        menuToggleAria: "Open menu",
+        languageLabel: "Language",
+        authTitle: "Sign in or create account",
+        loginTitle: "Sign in",
+        registerTitle: "Create account",
+        nameLabel: "Name",
+        emailLabel: "Email",
+        emailPlaceholder: "name@example.com",
+        golfIdLabel: "Golf ID",
+        passwordLabel: "Password",
+        loginButton: "Sign in",
+        registerButton: "Register",
+        menuNewRound: "New round",
+        menuRounds: "Rounds",
+        menuAccount: "Account",
+        noRoundTitle: "No active round",
+        noRoundText: "Start a new round to begin tracking strokes.",
+        startRoundTitle: "Start new round",
+        courseNameLabel: "Course name",
+        courseNamePlaceholder: "My Golf Club",
+        holeCountLegend: "Number of holes",
+        holes9: "9 holes",
+        holes18: "18 holes",
+        teammatesTitle: "Playing partners",
+        addTeammateButton: "Add playing partner (max 3)",
+        startRoundButton: "Start round",
+        ongoingRoundTitle: "Ongoing round",
+        finishRoundButton: "Finish round",
+        activePlayerLabel: "Active player",
+        strokesSoFar: "Strokes so far",
+        allRoundsTitle: "All rounds",
+        latestFirstText: "Most recent round appears first.",
+        accountTitle: "Account settings",
+        currentPasswordLabel: "Current password (only required for password change)",
+        newPasswordLabel: "New password",
+        saveAccountButton: "Save account",
+        logoutButton: "Sign out",
+        infoTitle: "About the service",
+        infoText: "Track rounds, partners, and strokes per hole in one service.",
+        closeButton: "Close",
+        createdBy: "Created by Sharp Edge AB",
+        loginFailed: "Could not sign in: {error}",
+        registerFailed: "Could not register account: {error}",
+        accountUpdated: "Account updated.",
+        saveAccountFailed: "Could not save account: {error}",
+        logoutFailed: "Could not sign out: {error}",
+        maxPlayers: "Maximum 4 players per round (you + 3 partners).",
+        startRoundFailed: "Could not start round: {error}",
+        switchHoleFailed: "Could not switch hole: {error}",
+        finishConfirm: "Do you want to finish the round now?",
+        finishSaved: "The round has been completed and saved.",
+        finishFailed: "Could not finish round: {error}",
+        noRounds: "No rounds saved yet.",
+        roundsLoadFailed: "Could not load rounds: {error}",
+        detailsShow: "Show details",
+        detailsHide: "Hide details",
+        detailsFailed: "Could not show details: {error}",
+        detailsLoading: "Loading details...",
+        editRound: "Edit",
+        saveChanges: "Save changes",
+        cancel: "Cancel",
+        deleteRound: "Delete",
+        deleteConfirm: "Do you want to delete this finished round?",
+        deleteFailed: "Could not delete round: {error}",
+        saveEditsFailed: "Could not save changes: {error}",
+        invalidStrokes: "All strokes must be integers of 0 or more.",
+        loggedInAs: "Signed in as {email}",
+        youSuffix: " (you)",
+        ongoing: "Ongoing",
+        ended: "Finished: {time}",
+        startLabel: "Start: {time}",
+        holesPlayers: "{holes} holes • {players} players",
+        holeLabel: "Hole {number}",
+        strokesLabel: "{strokes} strokes",
+        minutesSeconds: "{m}m {s}s",
+        holeHeader: "Hole",
+        timeHeader: "Time",
+        summaryTitle: "Summary",
+        summaryPartHeader: "Section",
+        summaryFront9: "Front 9",
+        summaryBack9: "Back 9",
+        summaryTotal18: "Total 18",
+        summaryTotal9: "Total 9",
+    },
+    "en-US": {}
+};
+
+I18N["en-US"] = { ...I18N["en-GB"] };
 
 const state = {
+    language: getInitialLanguage(),
     user: null,
     roundId: null,
     courseName: "",
@@ -51,6 +237,22 @@ const state = {
     detailRounds: {},
 };
 
+if (languageSelect) {
+    languageSelect.value = state.language;
+    languageSelect.addEventListener("change", () => {
+        state.language = languageSelect.value;
+        window.localStorage.setItem(LANGUAGE_STORAGE_KEY, state.language);
+        applyStaticTranslations();
+        if (state.user) {
+            setUser(state.user);
+        }
+        renderRoundUi();
+        renderRoundsList();
+    });
+}
+
+applyStaticTranslations();
+
 loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     try {
@@ -63,7 +265,7 @@ loginForm.addEventListener("submit", async (event) => {
         await restoreRoundFromLocalStorage();
         await refreshRounds();
     } catch (error) {
-        window.alert(`Kunde inte logga in: ${error.message}`);
+        window.alert(t("loginFailed", { error: error.message }));
     }
 });
 
@@ -81,7 +283,7 @@ registerForm.addEventListener("submit", async (event) => {
         await restoreRoundFromLocalStorage();
         await refreshRounds();
     } catch (error) {
-        window.alert(`Kunde inte registrera konto: ${error.message}`);
+        window.alert(t("registerFailed", { error: error.message }));
     }
 });
 
@@ -97,9 +299,9 @@ accountForm.addEventListener("submit", async (event) => {
         setUser(response.user);
         document.getElementById("accountCurrentPassword").value = "";
         document.getElementById("accountNewPassword").value = "";
-        window.alert("Konto uppdaterat.");
+        window.alert(t("accountUpdated"));
     } catch (error) {
-        window.alert(`Kunde inte spara konto: ${error.message}`);
+        window.alert(t("saveAccountFailed", { error: error.message }));
     }
 });
 
@@ -110,18 +312,38 @@ logoutBtn.addEventListener("click", async () => {
         resetRoundState();
         setUser(null);
     } catch (error) {
-        window.alert(`Kunde inte logga ut: ${error.message}`);
+        window.alert(t("logoutFailed", { error: error.message }));
     }
 });
 
 menuButtons.forEach((button) => {
     button.addEventListener("click", async () => {
         showView(button.dataset.view);
+        closeMenuDrawer();
         if (button.dataset.view === "historyView") {
             await refreshRounds();
         }
     });
 });
+
+if (menuToggleBtn && menuDrawer) {
+    menuToggleBtn.addEventListener("click", () => {
+        menuDrawer.classList.toggle("hidden");
+    });
+
+    document.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof Node)) {
+            return;
+        }
+
+        const insideDrawer = menuDrawer.contains(target);
+        const insideToggle = menuToggleBtn.contains(target);
+        if (!insideDrawer && !insideToggle) {
+            closeMenuDrawer();
+        }
+    });
+}
 
 setupForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -187,7 +409,7 @@ finishRoundBtn.addEventListener("click", async () => {
         return;
     }
 
-    const confirmed = window.confirm("Vill du avsluta ronden nu?");
+    const confirmed = window.confirm(t("finishConfirm"));
     if (!confirmed) {
         return;
     }
@@ -198,12 +420,12 @@ finishRoundBtn.addEventListener("click", async () => {
         persistLocalState();
         await postApi("finish_round", { round_id: state.roundId });
         clearLocalState();
-        window.alert("Ronden är avslutad och sparad.");
+        window.alert(t("finishSaved"));
         resetRoundState();
         await refreshRounds();
         showView("historyView");
     } catch (error) {
-        window.alert(`Kunde inte avsluta ronden: ${error.message}`);
+        window.alert(t("finishFailed", { error: error.message }));
     }
 });
 
@@ -226,10 +448,13 @@ async function initializeApp() {
 
 function setUser(user) {
     state.user = user;
+    appMenu.classList.toggle("hidden", !user);
 
     if (!user) {
         authSection.classList.remove("hidden");
         appSection.classList.add("hidden");
+        closeMenuDrawer();
+        updateScrollLock();
         return;
     }
 
@@ -237,7 +462,8 @@ function setUser(user) {
     appSection.classList.remove("hidden");
     document.getElementById("accountName").value = user.name || "";
     document.getElementById("accountGolfId").value = user.golf_id || "";
-    accountEmail.textContent = `Inloggad som ${user.email}`;
+    accountEmail.textContent = t("loggedInAs", { email: user.email });
+    updateScrollLock();
 }
 
 function showView(viewId) {
@@ -248,12 +474,14 @@ function showView(viewId) {
     menuButtons.forEach((button) => {
         button.classList.toggle("active", button.dataset.view === viewId);
     });
+
+    updateScrollLock();
 }
 
 function addTeammateRow(player = null) {
     const currentRows = teammatesList.querySelectorAll(".teammate-row").length;
     if (currentRows >= 3) {
-        window.alert("Max 4 spelare per rond (du + 3 medspelare).");
+        window.alert(t("maxPlayers"));
         return;
     }
 
@@ -261,6 +489,8 @@ function addTeammateRow(player = null) {
     const nameInput = row.querySelector(".teammate-name");
     const golfInput = row.querySelector(".teammate-golfid");
     const removeButton = row.querySelector(".remove-teammate-btn");
+    nameInput.placeholder = t("nameLabel");
+    golfInput.placeholder = t("golfIdLabel");
 
     if (player) {
         nameInput.value = player.player_name || "";
@@ -285,7 +515,7 @@ async function startRound() {
         .filter((player) => player.player_name !== "");
 
     if (teammates.length > 3) {
-        window.alert("Max 4 spelare per rond (du + 3 medspelare).");
+        window.alert(t("maxPlayers"));
         return;
     }
 
@@ -311,7 +541,7 @@ async function startRound() {
         renderRoundUi();
         await refreshRounds();
     } catch (error) {
-        window.alert(`Kunde inte starta rond: ${error.message}`);
+        window.alert(t("startRoundFailed", { error: error.message }));
     }
 }
 
@@ -329,7 +559,7 @@ async function changeHole(nextHoleIndex) {
         persistLocalState();
         renderRoundUi();
     } catch (error) {
-        window.alert(`Kunde inte byta hål: ${error.message}`);
+        window.alert(t("switchHoleFailed", { error: error.message }));
     }
 }
 
@@ -412,6 +642,7 @@ function renderRoundUi() {
         noRoundNotice.classList.remove("hidden");
         setupSection.classList.remove("hidden");
         roundSection.classList.add("hidden");
+        updateScrollLock();
         return;
     }
 
@@ -420,11 +651,12 @@ function renderRoundUi() {
     roundSection.classList.remove("hidden");
 
     roundMeta.textContent = `${state.courseName} - ${formatDateTime(state.startedAt)}`;
-    currentHoleTitle.textContent = `Hål ${state.currentHoleIndex + 1}`;
+    currentHoleTitle.textContent = t("holeLabel", { number: state.currentHoleIndex + 1 });
     renderPlayerSelect();
     renderCurrentHoleCounter();
     renderHolesList();
     renderFinishRoundButton();
+    updateScrollLock();
 }
 
 function renderPlayerSelect() {
@@ -439,7 +671,7 @@ function renderPlayerSelect() {
         button.className = "player-btn";
         button.type = "button";
         button.textContent = player.is_owner
-            ? `${player.player_name} (du)`
+            ? `${player.player_name}${t("youSuffix")}`
             : `${player.player_name}`;
         button.classList.toggle("active", player.id === state.activePlayerId);
         button.addEventListener("click", () => {
@@ -478,8 +710,8 @@ function renderHolesList() {
         const duration = state.holeDurationsSeconds[index];
         const durationLabel = typeof duration === "number" ? ` • ${formatDuration(duration)}` : "";
 
-        label.textContent = `Hål ${holeNumber}`;
-        strokesLabel.textContent = `${strokesValue} slag${durationLabel}`;
+        label.textContent = t("holeLabel", { number: holeNumber });
+        strokesLabel.textContent = `${t("strokesLabel", { strokes: strokesValue })}${durationLabel}`;
         button.classList.add(isCurrent ? "current" : isPlayed ? "played" : "upcoming");
         button.addEventListener("click", () => {
             void changeHole(index);
@@ -502,26 +734,28 @@ async function refreshRounds() {
         }
         renderRoundsList();
     } catch (error) {
-        roundsList.innerHTML = `<p class="muted">Kunde inte läsa rundor: ${escapeHtml(error.message)}</p>`;
+        roundsList.innerHTML = `<p class="muted">${escapeHtml(t("roundsLoadFailed", { error: error.message }))}</p>`;
     }
 }
 
 function renderRoundsList() {
     roundsList.textContent = "";
     if (state.rounds.length === 0) {
-        roundsList.innerHTML = "<p class=\"muted\">Inga rundor sparade ännu.</p>";
+        roundsList.innerHTML = `<p class="muted">${escapeHtml(t("noRounds"))}</p>`;
         return;
     }
 
     state.rounds.forEach((round) => {
         const item = document.createElement("article");
         item.className = "round-item";
-        const endedLabel = round.ended_at ? `Avslutad: ${formatDateTime(round.ended_at)}` : "Pågår";
+        const endedLabel = round.ended_at
+            ? t("ended", { time: formatDateTime(round.ended_at) })
+            : t("ongoing");
         item.innerHTML = `
             <div>
                 <strong>${escapeHtml(round.course_name)}</strong>
-                <div class="muted">${round.total_holes} hål • ${round.players_count} spelare</div>
-                <div class="muted">Start: ${escapeHtml(formatDateTime(round.started_at))}</div>
+                <div class="muted">${escapeHtml(t("holesPlayers", { holes: round.total_holes, players: round.players_count }))}</div>
+                <div class="muted">${escapeHtml(t("startLabel", { time: formatDateTime(round.started_at) }))}</div>
                 <div class="muted">${escapeHtml(endedLabel)}</div>
             </div>
         `;
@@ -533,8 +767,8 @@ function renderRoundsList() {
         detailsButton.className = "ghost-btn";
         detailsButton.type = "button";
         detailsButton.innerHTML = state.expandedRoundId === round.id
-            ? "<i class=\"fa-solid fa-eye-slash\"></i> Dölj detaljer"
-            : "<i class=\"fa-solid fa-eye\"></i> Visa detaljer";
+            ? `<i class="fa-solid fa-eye-slash"></i> ${escapeHtml(t("detailsHide"))}`
+            : `<i class="fa-solid fa-eye"></i> ${escapeHtml(t("detailsShow"))}`;
         detailsButton.addEventListener("click", () => {
             void toggleRoundDetails(round.id);
         });
@@ -544,7 +778,7 @@ function renderRoundsList() {
             const deleteButton = document.createElement("button");
             deleteButton.type = "button";
             deleteButton.className = "danger-btn";
-            deleteButton.innerHTML = "<i class=\"fa-solid fa-trash\"></i> Ta bort";
+            deleteButton.innerHTML = `<i class="fa-solid fa-trash"></i> ${escapeHtml(t("deleteRound"))}`;
             deleteButton.addEventListener("click", () => {
                 void deleteRound(round.id);
             });
@@ -591,7 +825,7 @@ async function toggleRoundDetails(roundId) {
             const response = await postApi("get_round", { round_id: roundId });
             state.detailRounds[roundId] = response.round;
         } catch (error) {
-            window.alert(`Kunde inte visa detaljer: ${error.message}`);
+            window.alert(t("detailsFailed", { error: error.message }));
             return;
         }
     }
@@ -604,16 +838,16 @@ async function toggleRoundDetails(roundId) {
 function buildInlineRoundDetails(roundId) {
     const round = state.detailRounds[roundId];
     if (!round) {
-        return "<p class=\"muted\">Laddar detaljer...</p>";
+        return `<p class="muted">${escapeHtml(t("detailsLoading"))}</p>`;
     }
 
     const actions = [];
     if (round.ended_at) {
         if (state.editingRoundId === roundId) {
-            actions.push("<button type=\"button\" class=\"primary-btn\" data-inline-action=\"save\"><i class=\"fa-solid fa-floppy-disk\"></i> Spara ändringar</button>");
-            actions.push("<button type=\"button\" class=\"ghost-btn\" data-inline-action=\"cancel\"><i class=\"fa-solid fa-xmark\"></i> Avbryt</button>");
+            actions.push(`<button type="button" class="primary-btn" data-inline-action="save"><i class="fa-solid fa-floppy-disk"></i> ${escapeHtml(t("saveChanges"))}</button>`);
+            actions.push(`<button type="button" class="ghost-btn" data-inline-action="cancel"><i class="fa-solid fa-xmark"></i> ${escapeHtml(t("cancel"))}</button>`);
         } else {
-            actions.push("<button type=\"button\" class=\"ghost-btn\" data-inline-action=\"edit\"><i class=\"fa-solid fa-pen\"></i> Redigera</button>");
+            actions.push(`<button type="button" class="ghost-btn" data-inline-action="edit"><i class="fa-solid fa-pen"></i> ${escapeHtml(t("editRound"))}</button>`);
         }
     }
 
@@ -632,7 +866,7 @@ function buildInlineRoundDetails(roundId) {
 function buildRoundDetailsTable(round) {
     const players = round.players || [];
     const holeDurations = normalizeHoleDurations(round.hole_durations_seconds, Number(round.total_holes ?? 0));
-    let html = "<table class=\"details-table\"><thead><tr><th>Hål</th><th>Tid</th>";
+    let html = `<table class="details-table"><thead><tr><th>${escapeHtml(t("holeHeader"))}</th><th>${escapeHtml(t("timeHeader"))}</th>`;
     players.forEach((player) => {
         html += `<th>${escapeHtml(player.player_name)}</th>`;
     });
@@ -660,7 +894,7 @@ function buildRoundDetailsTable(round) {
 function buildEditableRoundDetailsTable(round) {
     const players = round.players || [];
     const holeDurations = normalizeHoleDurations(round.hole_durations_seconds, Number(round.total_holes ?? 0));
-    let html = "<table class=\"details-table\"><thead><tr><th>Hål</th><th>Tid</th>";
+    let html = `<table class="details-table"><thead><tr><th>${escapeHtml(t("holeHeader"))}</th><th>${escapeHtml(t("timeHeader"))}</th>`;
     players.forEach((player) => {
         html += `<th>${escapeHtml(player.player_name)}</th>`;
     });
@@ -701,7 +935,7 @@ async function saveRoundEdits(roundId, detailsWrapElement) {
         const strokes = Number(input.value);
 
         if (!Number.isInteger(strokes) || strokes < 0) {
-            window.alert("Alla slag måste vara heltal 0 eller större.");
+            window.alert(t("invalidStrokes"));
             return;
         }
 
@@ -728,12 +962,12 @@ async function saveRoundEdits(roundId, detailsWrapElement) {
         renderRoundsList();
         await refreshRounds();
     } catch (error) {
-        window.alert(`Kunde inte spara ändringar: ${error.message}`);
+        window.alert(t("saveEditsFailed", { error: error.message }));
     }
 }
 
 async function deleteRound(roundId) {
-    const confirmed = window.confirm("Vill du ta bort den här avslutade ronden?");
+    const confirmed = window.confirm(t("deleteConfirm"));
     if (!confirmed) {
         return;
     }
@@ -750,7 +984,7 @@ async function deleteRound(roundId) {
         renderRoundsList();
         await refreshRounds();
     } catch (error) {
-        window.alert(`Kunde inte ta bort ronden: ${error.message}`);
+        window.alert(t("deleteFailed", { error: error.message }));
     }
 }
 
@@ -764,15 +998,15 @@ function buildRoundSummary(round) {
 
     const summaryRows = totalHoles === 18
         ? [
-            { label: "Första 9", start: 0, end: 9 },
-            { label: "Sista 9", start: 9, end: 18 },
-            { label: "Totalt 18", start: 0, end: 18 },
+            { label: t("summaryFront9"), start: 0, end: 9 },
+            { label: t("summaryBack9"), start: 9, end: 18 },
+            { label: t("summaryTotal18"), start: 0, end: 18 },
         ]
         : [
-            { label: "Totalt 9", start: 0, end: 9 },
+            { label: t("summaryTotal9"), start: 0, end: 9 },
         ];
 
-    let html = "<section class=\"details-summary\"><h4>Summering</h4><table class=\"details-summary-table\"><thead><tr><th>Del</th>";
+    let html = `<section class="details-summary"><h4>${escapeHtml(t("summaryTitle"))}</h4><table class="details-summary-table"><thead><tr><th>${escapeHtml(t("summaryPartHeader"))}</th>`;
     players.forEach((player) => {
         html += `<th>${escapeHtml(player.player_name)}</th>`;
     });
@@ -891,12 +1125,103 @@ function formatDuration(totalSeconds) {
     const seconds = Math.max(0, Math.round(Number(totalSeconds) || 0));
     const minutes = Math.floor(seconds / 60);
     const restSeconds = seconds % 60;
-    return `${minutes}m ${restSeconds}s`;
+    return t("minutesSeconds", { m: minutes, s: restSeconds });
 }
 
 function updateTeammateControls() {
     const count = teammatesList.querySelectorAll(".teammate-row").length;
     addTeammateBtn.disabled = count >= 3;
+}
+
+function closeMenuDrawer() {
+    menuDrawer.classList.add("hidden");
+}
+
+function updateScrollLock() {
+    const playView = document.getElementById("playView");
+    const shouldLock = Boolean(
+        state.user &&
+        state.roundId &&
+        playView &&
+        !playView.classList.contains("hidden")
+    );
+    document.body.classList.toggle("lock-scroll", shouldLock);
+}
+
+function getInitialLanguage() {
+    const saved = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    if (saved && I18N[saved]) {
+        return saved;
+    }
+
+    const preferred = Array.isArray(navigator.languages) && navigator.languages.length > 0
+        ? navigator.languages
+        : [navigator.language || "sv-SE"];
+
+    for (const candidate of preferred) {
+        const mapped = mapLanguageCode(candidate);
+        if (mapped) {
+            return mapped;
+        }
+    }
+
+    return "sv-SE";
+}
+
+function mapLanguageCode(code) {
+    if (!code) {
+        return null;
+    }
+
+    const normalized = String(code).toLowerCase();
+    if (normalized.startsWith("sv")) {
+        return "sv-SE";
+    }
+    if (normalized === "en-gb" || normalized.startsWith("en-gb")) {
+        return "en-GB";
+    }
+    if (normalized.startsWith("en-us")) {
+        return "en-US";
+    }
+    if (normalized.startsWith("en")) {
+        return "en-US";
+    }
+
+    return null;
+}
+
+function t(key, params = {}) {
+    const dictionary = I18N[state.language] || I18N["sv-SE"];
+    let value = dictionary[key] ?? I18N["sv-SE"][key] ?? key;
+    Object.entries(params).forEach(([name, data]) => {
+        value = value.replaceAll(`{${name}}`, String(data));
+    });
+    return value;
+}
+
+function applyStaticTranslations() {
+    document.documentElement.lang = state.language.startsWith("sv") ? "sv" : "en";
+
+    document.querySelectorAll("[data-i18n]").forEach((element) => {
+        const key = element.getAttribute("data-i18n");
+        if (key) {
+            element.textContent = t(key);
+        }
+    });
+
+    document.querySelectorAll("[data-i18n-placeholder]").forEach((element) => {
+        const key = element.getAttribute("data-i18n-placeholder");
+        if (key && "placeholder" in element) {
+            element.placeholder = t(key);
+        }
+    });
+
+    document.querySelectorAll("[data-i18n-aria-label]").forEach((element) => {
+        const key = element.getAttribute("data-i18n-aria-label");
+        if (key) {
+            element.setAttribute("aria-label", t(key));
+        }
+    });
 }
 
 function registerServiceWorker() {
@@ -905,9 +1230,13 @@ function registerServiceWorker() {
     }
 
     window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./service-worker.js").catch(() => {
-            // Ignore registration errors to avoid blocking app usage.
-        });
+        navigator.serviceWorker.register("./service-worker.js")
+            .then((registration) => {
+                registration.update();
+            })
+            .catch(() => {
+                // Ignore registration errors to avoid blocking app usage.
+            });
     });
 }
 
@@ -940,7 +1269,7 @@ function formatDateTime(value) {
     if (Number.isNaN(date.getTime())) {
         return value;
     }
-    return date.toLocaleString("sv-SE");
+    return date.toLocaleString(state.language);
 }
 
 function escapeHtml(value) {

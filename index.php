@@ -24,106 +24,125 @@ declare(strict_types=1);
 <main class="app">
     <section class="hero">
         <div class="hero-top">
-            <h1><i class="fa-solid fa-golf-ball-tee"></i> SE Golfcounter</h1>
-            <button id="infoOpenBtn" type="button" class="icon-btn" aria-label="Visa information">
+            <h1><i class="fa-solid fa-golf-ball-tee"></i> <span data-i18n="appTitle">SE Golfcounter</span></h1>
+            <div class="hero-actions">
+                <button id="infoOpenBtn" type="button" class="icon-btn" data-i18n-aria-label="showInfoAria" aria-label="Visa information">
                 <i class="fa-solid fa-circle-info"></i>
-            </button>
+                </button>
+                <button id="menuToggleBtn" type="button" class="icon-btn" data-i18n-aria-label="menuToggleAria" aria-label="Öppna meny">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <section id="menuDrawer" class="menu-drawer hidden">
+        <div class="menu-drawer-card">
+            <label class="language-select-wrap" for="languageSelect">
+                <span class="visually-hidden" data-i18n="languageLabel">Språk</span>
+                <i class="fa-solid fa-language language-icon" aria-hidden="true"></i>
+                <select id="languageSelect" class="language-select">
+                    <option value="sv-SE">🇸🇪 Svenska</option>
+                    <option value="en-GB">🇬🇧 English (UK)</option>
+                    <option value="en-US">🇺🇸 English (US)</option>
+                </select>
+            </label>
+
+            <nav id="appMenu" class="menu hidden">
+                <button class="menu-btn active" data-view="playView">
+                    <i class="fa-solid fa-flag-checkered"></i> <span data-i18n="menuNewRound">Ny rond</span>
+                </button>
+                <button class="menu-btn" data-view="historyView">
+                    <i class="fa-solid fa-clock-rotate-left"></i> <span data-i18n="menuRounds">Rundor</span>
+                </button>
+                <button class="menu-btn" data-view="accountView">
+                    <i class="fa-solid fa-user-gear"></i> <span data-i18n="menuAccount">Konto</span>
+                </button>
+            </nav>
         </div>
     </section>
 
     <section id="authSection" class="card">
-        <h2><i class="fa-solid fa-user-lock"></i> Logga in eller skapa konto</h2>
+        <h2><i class="fa-solid fa-user-lock"></i> <span data-i18n="authTitle">Logga in eller skapa konto</span></h2>
         <div class="auth-grid">
             <form id="loginForm">
-                <h3>Logga in</h3>
+                <h3 data-i18n="loginTitle">Logga in</h3>
                 <label>
-                    E-post
-                    <input type="email" id="loginEmail" required>
+                    <span data-i18n="emailLabel">E-post</span>
+                    <input type="email" id="loginEmail" data-i18n-placeholder="emailPlaceholder" placeholder="name@example.com" required>
                 </label>
                 <label>
-                    Lösenord
+                    <span data-i18n="passwordLabel">Losenord</span>
                     <input type="password" id="loginPassword" required minlength="6">
                 </label>
                 <button type="submit" class="primary-btn">
-                    <i class="fa-solid fa-right-to-bracket"></i> Logga in
+                    <i class="fa-solid fa-right-to-bracket"></i> <span data-i18n="loginButton">Logga in</span>
                 </button>
             </form>
 
             <form id="registerForm">
-                <h3>Skapa konto</h3>
+                <h3 data-i18n="registerTitle">Skapa konto</h3>
                 <label>
-                    Namn
+                    <span data-i18n="nameLabel">Namn</span>
                     <input type="text" id="registerName" required maxlength="120">
                 </label>
                 <label>
-                    E-post
-                    <input type="email" id="registerEmail" required>
+                    <span data-i18n="emailLabel">E-post</span>
+                    <input type="email" id="registerEmail" data-i18n-placeholder="emailPlaceholder" placeholder="name@example.com" required>
                 </label>
                 <label>
-                    Golf-ID
+                    <span data-i18n="golfIdLabel">Golf-ID</span>
                     <input type="text" id="registerGolfId" maxlength="50" placeholder="SE-123456">
                 </label>
                 <label>
-                    Lösenord
+                    <span data-i18n="passwordLabel">Losenord</span>
                     <input type="password" id="registerPassword" required minlength="6">
                 </label>
                 <button type="submit" class="primary-btn">
-                    <i class="fa-solid fa-user-plus"></i> Registrera
+                    <i class="fa-solid fa-user-plus"></i> <span data-i18n="registerButton">Registrera</span>
                 </button>
             </form>
         </div>
     </section>
 
     <section id="appSection" class="hidden">
-        <nav class="menu card">
-            <button class="menu-btn active" data-view="playView">
-                <i class="fa-solid fa-flag-checkered"></i> Ny rond
-            </button>
-            <button class="menu-btn" data-view="historyView">
-                <i class="fa-solid fa-clock-rotate-left"></i> Rundor
-            </button>
-            <button class="menu-btn" data-view="accountView">
-                <i class="fa-solid fa-user-gear"></i> Konto
-            </button>
-        </nav>
-
         <section id="playView" class="view">
             <section id="noRoundNotice" class="card">
-                <h2><i class="fa-regular fa-circle-pause"></i> Ingen pågående rond</h2>
-                <p class="muted">Starta en ny rond för att börja registrera slag.</p>
+                <h2><i class="fa-regular fa-circle-pause"></i> <span data-i18n="noRoundTitle">Ingen pågående rond</span></h2>
+                <p class="muted" data-i18n="noRoundText">Starta en ny rond för att börja registrera slag.</p>
             </section>
 
             <section id="setupSection" class="card">
-                <h2><i class="fa-solid fa-flag-checkered"></i> Starta ny rond</h2>
+                <h2><i class="fa-solid fa-flag-checkered"></i> <span data-i18n="startRoundTitle">Starta ny rond</span></h2>
                 <form id="setupForm">
                     <label>
-                        Banans namn
-                        <input type="text" id="courseName" required maxlength="180" placeholder="Min Golfklubb">
+                        <span data-i18n="courseNameLabel">Banans namn</span>
+                        <input type="text" id="courseName" required maxlength="180" data-i18n-placeholder="courseNamePlaceholder" placeholder="Min Golfklubb">
                     </label>
                     <fieldset>
-                        <legend>Antal hål</legend>
+                        <legend data-i18n="holeCountLegend">Antal hål</legend>
                         <label class="inline-option">
                             <input type="radio" name="holes" value="9" checked>
-                            9 hål
+                            <span data-i18n="holes9">9 hål</span>
                         </label>
                         <label class="inline-option">
                             <input type="radio" name="holes" value="18">
-                            18 hål
+                            <span data-i18n="holes18">18 hål</span>
                         </label>
                     </fieldset>
 
                     <div class="teammates">
                         <div class="teammates-header">
-                            <h3><i class="fa-solid fa-users"></i> Medspelare</h3>
+                            <h3><i class="fa-solid fa-users"></i> <span data-i18n="teammatesTitle">Medspelare</span></h3>
                             <button id="addTeammateBtn" type="button" class="ghost-btn">
-                                <i class="fa-solid fa-user-plus"></i> Lägg till medspelare (max 3)
+                                <i class="fa-solid fa-user-plus"></i> <span data-i18n="addTeammateButton">Lägg till medspelare (max 3)</span>
                             </button>
                         </div>
                         <div id="teammatesList" class="teammates-list"></div>
                     </div>
 
                     <button type="submit" class="primary-btn">
-                        <i class="fa-solid fa-play"></i> Starta rond
+                        <i class="fa-solid fa-play"></i> <span data-i18n="startRoundButton">Starta rond</span>
                     </button>
                 </form>
             </section>
@@ -132,22 +151,22 @@ declare(strict_types=1);
                 <div class="round-sticky-panel">
                     <div class="round-header">
                         <div>
-                            <h2><i class="fa-solid fa-list-check"></i> Pågående rond</h2>
+                            <h2><i class="fa-solid fa-list-check"></i> <span data-i18n="ongoingRoundTitle">Pagande rond</span></h2>
                             <p id="roundMeta"></p>
                         </div>
                         <button id="finishRoundBtn" class="danger-btn">
-                            <i class="fa-solid fa-circle-stop"></i> Avsluta rond
+                            <i class="fa-solid fa-circle-stop"></i> <span data-i18n="finishRoundButton">Avsluta rond</span>
                         </button>
                     </div>
 
                     <div class="player-picker">
-                        <label>Aktiv spelare</label>
+                        <label data-i18n="activePlayerLabel">Aktiv spelare</label>
                         <div id="activePlayerButtons" class="player-buttons"></div>
                     </div>
 
                     <div class="current-hole">
                         <h3 id="currentHoleTitle">Hål 1</h3>
-                        <p>Slag hittills</p>
+                        <p data-i18n="strokesSoFar">Slag hittills</p>
                         <div class="counter-row">
                             <button id="minusBtn" class="counter-btn" type="button" aria-label="Minska slag">
                                 <i class="fa-solid fa-minus"></i>
@@ -166,50 +185,52 @@ declare(strict_types=1);
 
         <section id="historyView" class="view hidden">
             <section class="card">
-                <h2><i class="fa-solid fa-trophy"></i> Alla rundor</h2>
-                <p class="muted">Senaste ronden visas högst upp.</p>
+                <h2><i class="fa-solid fa-trophy"></i> <span data-i18n="allRoundsTitle">Alla rundor</span></h2>
+                <p class="muted" data-i18n="latestFirstText">Senaste ronden visas högst upp.</p>
                 <div id="roundsList" class="rounds-list"></div>
             </section>
         </section>
 
         <section id="accountView" class="view hidden">
             <section class="card">
-                <h2><i class="fa-solid fa-user-gear"></i> Kontohantering</h2>
+                <h2><i class="fa-solid fa-user-gear"></i> <span data-i18n="accountTitle">Kontohantering</span></h2>
                 <p id="accountEmail" class="muted"></p>
                 <form id="accountForm">
                     <label>
-                        Namn
+                        <span data-i18n="nameLabel">Namn</span>
                         <input type="text" id="accountName" required maxlength="120">
                     </label>
                     <label>
-                        Golf-ID
+                        <span data-i18n="golfIdLabel">Golf-ID</span>
                         <input type="text" id="accountGolfId" maxlength="50">
                     </label>
                     <label>
-                        Nuvarande lösenord (krävs endast vid byte)
+                        <span data-i18n="currentPasswordLabel">Nuvarande lösenord (krävs endast vid byte)</span>
                         <input type="password" id="accountCurrentPassword">
                     </label>
                     <label>
-                        Nytt lösenord
+                        <span data-i18n="newPasswordLabel">Nytt lösenord</span>
                         <input type="password" id="accountNewPassword" minlength="6">
                     </label>
                     <button type="submit" class="primary-btn">
-                        <i class="fa-solid fa-floppy-disk"></i> Spara konto
+                        <i class="fa-solid fa-floppy-disk"></i> <span data-i18n="saveAccountButton">Spara konto</span>
                     </button>
                 </form>
                 <button id="logoutBtn" class="danger-btn top-gap">
-                    <i class="fa-solid fa-right-from-bracket"></i> Logga ut
+                    <i class="fa-solid fa-right-from-bracket"></i> <span data-i18n="logoutButton">Logga ut</span>
                 </button>
             </section>
         </section>
     </section>
 </main>
 
+<footer class="site-credit" data-i18n="createdBy">Created by Sharp Edge AB</footer>
+
 <dialog id="infoDialog" class="info-dialog">
     <article>
-        <h2><i class="fa-solid fa-circle-info"></i> Om tjänsten</h2>
-        <p>Hantera rundor, medspelare och slag per hål i samma tjänst.</p>
-        <button id="infoCloseBtn" type="button" class="primary-btn">Stäng</button>
+        <h2><i class="fa-solid fa-circle-info"></i> <span data-i18n="infoTitle">Om tjänsten</span></h2>
+        <p data-i18n="infoText">Hantera rundor, medspelare och slag per hål i samma tjänst.</p>
+        <button id="infoCloseBtn" type="button" class="primary-btn" data-i18n="closeButton">Stäng</button>
     </article>
 </dialog>
 
