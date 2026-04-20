@@ -10,10 +10,17 @@ const views = Array.from(document.querySelectorAll(".view"));
 const infoDialog = document.getElementById("infoDialog");
 const infoOpenBtn = document.getElementById("infoOpenBtn");
 const infoCloseBtn = document.getElementById("infoCloseBtn");
+const appDialog = document.getElementById("appDialog");
+const appDialogTitle = document.getElementById("appDialogTitle");
+const appDialogMessage = document.getElementById("appDialogMessage");
+const appDialogOkBtn = document.getElementById("appDialogOkBtn");
+const appDialogCancelBtn = document.getElementById("appDialogCancelBtn");
 const menuToggleBtn = document.getElementById("menuToggleBtn");
 const menuDrawer = document.getElementById("menuDrawer");
 const appMenu = document.getElementById("appMenu");
 const languageSelect = document.getElementById("languageSelect");
+const swishDonateLink = document.getElementById("swishDonateLink");
+const donationQrBlock = document.getElementById("donationQrBlock");
 
 const setupSection = document.getElementById("setupSection");
 const noRoundNotice = document.getElementById("noRoundNotice");
@@ -82,7 +89,12 @@ const I18N = {
         infoTitle: "Om tjänsten",
         infoText: "Hantera rundor, medspelare och slag per hål i samma tjänst.",
         closeButton: "Stäng",
+        dialogTitle: "Golfcounter",
+        okButton: "OK",
         createdBy: "Created by Sharp Edge AB",
+        donationTitle: "Stöd Golfcounter",
+        donateWithSwish: "Donera med Swish",
+        donationQrText: "Skanna QR-koden för att donera via Swish.",
         loginFailed: "Kunde inte logga in: {error}",
         registerFailed: "Kunde inte registrera konto: {error}",
         accountUpdated: "Konto uppdaterat.",
@@ -169,7 +181,12 @@ const I18N = {
         infoTitle: "About the service",
         infoText: "Track rounds, partners, and strokes per hole in one service.",
         closeButton: "Close",
+        dialogTitle: "Golfcounter",
+        okButton: "OK",
         createdBy: "Created by Sharp Edge AB",
+        donationTitle: "Support Golfcounter",
+        donateWithSwish: "Donate with Swish",
+        donationQrText: "Scan the QR code to donate via Swish.",
         loginFailed: "Could not sign in: {error}",
         registerFailed: "Could not register account: {error}",
         accountUpdated: "Account updated.",
@@ -252,6 +269,7 @@ if (languageSelect) {
 }
 
 applyStaticTranslations();
+setupDonationUi();
 
 loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -265,7 +283,7 @@ loginForm.addEventListener("submit", async (event) => {
         await restoreRoundFromLocalStorage();
         await refreshRounds();
     } catch (error) {
-        window.alert(t("loginFailed", { error: error.message }));
+        await showAppAlert(t("loginFailed", { error: error.message }));
     }
 });
 
@@ -283,7 +301,7 @@ registerForm.addEventListener("submit", async (event) => {
         await restoreRoundFromLocalStorage();
         await refreshRounds();
     } catch (error) {
-        window.alert(t("registerFailed", { error: error.message }));
+        await showAppAlert(t("registerFailed", { error: error.message }));
     }
 });
 
@@ -299,9 +317,9 @@ accountForm.addEventListener("submit", async (event) => {
         setUser(response.user);
         document.getElementById("accountCurrentPassword").value = "";
         document.getElementById("accountNewPassword").value = "";
-        window.alert(t("accountUpdated"));
+        await showAppAlert(t("accountUpdated"));
     } catch (error) {
-        window.alert(t("saveAccountFailed", { error: error.message }));
+        await showAppAlert(t("saveAccountFailed", { error: error.message }));
     }
 });
 
@@ -312,7 +330,7 @@ logoutBtn.addEventListener("click", async () => {
         resetRoundState();
         setUser(null);
     } catch (error) {
-        window.alert(t("logoutFailed", { error: error.message }));
+        await showAppAlert(t("logoutFailed", { error: error.message }));
     }
 });
 
@@ -382,6 +400,39 @@ if (infoDialog) {
     });
 }
 
+let appDialogResolver = null;
+
+if (appDialogOkBtn) {
+    appDialogOkBtn.addEventListener("click", () => {
+        if (appDialogResolver) {
+            appDialogResolver(true);
+            appDialogResolver = null;
+        }
+        appDialog.close();
+    });
+}
+
+if (appDialogCancelBtn) {
+    appDialogCancelBtn.addEventListener("click", () => {
+        if (appDialogResolver) {
+            appDialogResolver(false);
+            appDialogResolver = null;
+        }
+        appDialog.close();
+    });
+}
+
+if (appDialog) {
+    appDialog.addEventListener("cancel", (event) => {
+        event.preventDefault();
+        if (appDialogResolver) {
+            appDialogResolver(false);
+            appDialogResolver = null;
+        }
+        appDialog.close();
+    });
+}
+
 plusBtn.addEventListener("click", () => {
     const activePlayer = getActivePlayer();
     if (!activePlayer) {
@@ -409,7 +460,7 @@ finishRoundBtn.addEventListener("click", async () => {
         return;
     }
 
-    const confirmed = window.confirm(t("finishConfirm"));
+    const confirmed = await showAppConfirm(t("finishConfirm"));
     if (!confirmed) {
         return;
     }
@@ -420,12 +471,12 @@ finishRoundBtn.addEventListener("click", async () => {
         persistLocalState();
         await postApi("finish_round", { round_id: state.roundId });
         clearLocalState();
-        window.alert(t("finishSaved"));
+        await showAppAlert(t("finishSaved"));
         resetRoundState();
         await refreshRounds();
         showView("historyView");
     } catch (error) {
-        window.alert(t("finishFailed", { error: error.message }));
+        await showAppAlert(t("finishFailed", { error: error.message }));
     }
 });
 
@@ -481,7 +532,7 @@ function showView(viewId) {
 function addTeammateRow(player = null) {
     const currentRows = teammatesList.querySelectorAll(".teammate-row").length;
     if (currentRows >= 3) {
-        window.alert(t("maxPlayers"));
+        void showAppAlert(t("maxPlayers"));
         return;
     }
 
@@ -515,7 +566,7 @@ async function startRound() {
         .filter((player) => player.player_name !== "");
 
     if (teammates.length > 3) {
-        window.alert(t("maxPlayers"));
+        await showAppAlert(t("maxPlayers"));
         return;
     }
 
@@ -541,7 +592,7 @@ async function startRound() {
         renderRoundUi();
         await refreshRounds();
     } catch (error) {
-        window.alert(t("startRoundFailed", { error: error.message }));
+        await showAppAlert(t("startRoundFailed", { error: error.message }));
     }
 }
 
@@ -559,7 +610,7 @@ async function changeHole(nextHoleIndex) {
         persistLocalState();
         renderRoundUi();
     } catch (error) {
-        window.alert(t("switchHoleFailed", { error: error.message }));
+        await showAppAlert(t("switchHoleFailed", { error: error.message }));
     }
 }
 
@@ -825,7 +876,7 @@ async function toggleRoundDetails(roundId) {
             const response = await postApi("get_round", { round_id: roundId });
             state.detailRounds[roundId] = response.round;
         } catch (error) {
-            window.alert(t("detailsFailed", { error: error.message }));
+            await showAppAlert(t("detailsFailed", { error: error.message }));
             return;
         }
     }
@@ -935,7 +986,7 @@ async function saveRoundEdits(roundId, detailsWrapElement) {
         const strokes = Number(input.value);
 
         if (!Number.isInteger(strokes) || strokes < 0) {
-            window.alert(t("invalidStrokes"));
+            await showAppAlert(t("invalidStrokes"));
             return;
         }
 
@@ -962,12 +1013,12 @@ async function saveRoundEdits(roundId, detailsWrapElement) {
         renderRoundsList();
         await refreshRounds();
     } catch (error) {
-        window.alert(t("saveEditsFailed", { error: error.message }));
+        await showAppAlert(t("saveEditsFailed", { error: error.message }));
     }
 }
 
 async function deleteRound(roundId) {
-    const confirmed = window.confirm(t("deleteConfirm"));
+    const confirmed = await showAppConfirm(t("deleteConfirm"));
     if (!confirmed) {
         return;
     }
@@ -984,7 +1035,7 @@ async function deleteRound(roundId) {
         renderRoundsList();
         await refreshRounds();
     } catch (error) {
-        window.alert(t("deleteFailed", { error: error.message }));
+        await showAppAlert(t("deleteFailed", { error: error.message }));
     }
 }
 
@@ -1222,6 +1273,68 @@ function applyStaticTranslations() {
             element.setAttribute("aria-label", t(key));
         }
     });
+
+    if (appDialogTitle) {
+        appDialogTitle.textContent = t("dialogTitle");
+    }
+}
+
+async function showAppAlert(message) {
+    await showAppDialog(String(message), false);
+}
+
+async function showAppConfirm(message) {
+    return showAppDialog(String(message), true);
+}
+
+function showAppDialog(message, isConfirm) {
+    if (!appDialog || !appDialogMessage || !appDialogOkBtn || !appDialogCancelBtn) {
+        if (isConfirm) {
+            return Promise.resolve(window.confirm(message));
+        }
+        window.alert(message);
+        return Promise.resolve(true);
+    }
+
+    appDialogMessage.textContent = message;
+    appDialogCancelBtn.classList.toggle("hidden", !isConfirm);
+    if (appDialogTitle) {
+        appDialogTitle.textContent = t("dialogTitle");
+    }
+
+    return new Promise((resolve) => {
+        appDialogResolver = resolve;
+        if (typeof appDialog.showModal === "function") {
+            appDialog.showModal();
+        } else {
+            resolve(isConfirm ? window.confirm(message) : true);
+        }
+    });
+}
+
+function setupDonationUi() {
+    if (!swishDonateLink || !donationQrBlock) {
+        return;
+    }
+
+    const swishPayload = {
+        payee: "0730746793",
+        message: "Donation: GolfCounter",
+        format: "png",
+    };
+    const swishUrl = `swish://payment?data=${encodeURIComponent(JSON.stringify(swishPayload))}`;
+    swishDonateLink.href = swishUrl;
+
+    const isMobile = isMobileDevice();
+    swishDonateLink.classList.toggle("hidden", !isMobile);
+    donationQrBlock.classList.toggle("hidden", isMobile);
+}
+
+function isMobileDevice() {
+    const ua = navigator.userAgent || "";
+    const uaMatch = /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(ua);
+    const touchMatch = window.matchMedia("(pointer: coarse)").matches;
+    return uaMatch || touchMatch;
 }
 
 function registerServiceWorker() {

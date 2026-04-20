@@ -224,13 +224,36 @@ declare(strict_types=1);
     </section>
 </main>
 
-<footer class="site-credit" data-i18n="createdBy">Created by Sharp Edge AB</footer>
+<footer class="site-credit">
+    <p data-i18n="createdBy">Created by Sharp Edge AB</p>
+    <section class="donation-section">
+        <p class="donation-title" data-i18n="donationTitle">Support Golfcounter</p>
+        <a id="swishDonateLink" class="primary-btn hidden" target="_blank" rel="noopener noreferrer">
+            <i class="fa-solid fa-heart"></i> <span data-i18n="donateWithSwish">Donera med Swish</span>
+        </a>
+        <div id="donationQrBlock" class="donation-qr hidden">
+            <p class="muted" data-i18n="donationQrText">Skanna QR-koden för att donera via Swish.</p>
+            <img src="./assets/icons/swish.png" alt="Swish QR-kod">
+        </div>
+    </section>
+</footer>
 
 <dialog id="infoDialog" class="info-dialog">
     <article>
         <h2><i class="fa-solid fa-circle-info"></i> <span data-i18n="infoTitle">Om tjänsten</span></h2>
         <p data-i18n="infoText">Hantera rundor, medspelare och slag per hål i samma tjänst.</p>
         <button id="infoCloseBtn" type="button" class="primary-btn" data-i18n="closeButton">Stäng</button>
+    </article>
+</dialog>
+
+<dialog id="appDialog" class="info-dialog">
+    <article>
+        <h2 id="appDialogTitle">Golfcounter</h2>
+        <p id="appDialogMessage"></p>
+        <div class="dialog-actions">
+            <button id="appDialogCancelBtn" type="button" class="ghost-btn hidden" data-i18n="cancel">Avbryt</button>
+            <button id="appDialogOkBtn" type="button" class="primary-btn" data-i18n="okButton">OK</button>
+        </div>
     </article>
 </dialog>
 
