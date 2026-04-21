@@ -141,8 +141,10 @@ const I18N = {
         detailsShow: "Visa detaljer",
         detailsHide: "Dölj detaljer",
         detailsFailed: "Kunde inte visa detaljer: {error}",
+        continueRoundFailed: "Kunde inte öppna rundan: {error}",
         detailsLoading: "Laddar detaljer...",
         editRound: "Redigera",
+        continueRound: "Fortsätt spela",
         saveChanges: "Spara ändringar",
         cancel: "Avbryt",
         deleteRound: "Ta bort",
@@ -248,8 +250,10 @@ const I18N = {
         detailsShow: "Show details",
         detailsHide: "Hide details",
         detailsFailed: "Could not show details: {error}",
+        continueRoundFailed: "Could not open the round: {error}",
         detailsLoading: "Loading details...",
         editRound: "Edit",
+        continueRound: "Continue playing",
         saveChanges: "Save changes",
         cancel: "Cancel",
         deleteRound: "Delete",
@@ -1031,6 +1035,24 @@ function renderRoundsList() {
                 void deleteRound(round.id);
             });
             actions.appendChild(deleteButton);
+        } else {
+            const continueButton = document.createElement("button");
+            continueButton.type = "button";
+            continueButton.className = "ghost-btn";
+            continueButton.innerHTML = `<i class="fa-solid fa-pen"></i> ${escapeHtml(t("continueRound"))}`;
+            continueButton.addEventListener("click", () => {
+                void continueRound(round.id);
+            });
+            actions.appendChild(continueButton);
+
+            const finishButton = document.createElement("button");
+            finishButton.type = "button";
+            finishButton.className = "danger-btn";
+            finishButton.innerHTML = `<i class="fa-solid fa-circle-stop"></i> ${escapeHtml(t("finishRoundButton"))}`;
+            finishButton.addEventListener("click", () => {
+                void finishRoundFromHistory(round.id);
+            });
+            actions.appendChild(finishButton);
         }
 
         item.appendChild(actions);
@@ -1090,13 +1112,11 @@ function buildInlineRoundDetails(roundId) {
     }
 
     const actions = [];
-    if (round.ended_at) {
-        if (state.editingRoundId === roundId) {
-            actions.push(`<button type="button" class="primary-btn" data-inline-action="save"><i class="fa-solid fa-floppy-disk"></i> ${escapeHtml(t("saveChanges"))}</button>`);
-            actions.push(`<button type="button" class="ghost-btn" data-inline-action="cancel"><i class="fa-solid fa-xmark"></i> ${escapeHtml(t("cancel"))}</button>`);
-        } else {
-            actions.push(`<button type="button" class="ghost-btn" data-inline-action="edit"><i class="fa-solid fa-pen"></i> ${escapeHtml(t("editRound"))}</button>`);
-        }
+    if (state.editingRoundId === roundId) {
+        actions.push(`<button type="button" class="primary-btn" data-inline-action="save"><i class="fa-solid fa-floppy-disk"></i> ${escapeHtml(t("saveChanges"))}</button>`);
+        actions.push(`<button type="button" class="ghost-btn" data-inline-action="cancel"><i class="fa-solid fa-xmark"></i> ${escapeHtml(t("cancel"))}</button>`);
+    } else {
+        actions.push(`<button type="button" class="ghost-btn" data-inline-action="edit"><i class="fa-solid fa-pen"></i> ${escapeHtml(t("editRound"))}</button>`);
     }
 
     const table = state.editingRoundId === roundId
@@ -1214,6 +1234,65 @@ async function saveRoundEdits(roundId, detailsWrapElement) {
     }
 }
 
+async function continueRound(roundId) {
+    try {
+        const response = await postApi("get_round", { round_id: roundId });
+        const round = response.round;
+        if (round.ended_at) {
+            await refreshRounds();
+            return;
+        }
+
+        state.roundId = round.id;
+        state.courseName = round.course_name;
+        state.startedAt = round.started_at;
+        state.endedAt = round.ended_at;
+        state.totalHoles = round.total_holes;
+        state.players = round.players || [];
+        state.currentHoleIndex = getNextHoleIndexForRound(round);
+        state.activePlayerId = getOwnerPlayerId() ?? state.players[0]?.id ?? null;
+        state.holeDurationsSeconds = normalizeHoleDurations(round.hole_durations_seconds, state.totalHoles);
+        state.holeStartedAtMs = Date.now();
+
+        persistLocalState();
+        showView("playView");
+        renderRoundUi();
+    } catch (error) {
+        await showAppAlert(t("continueRoundFailed", { error: error.message }));
+    }
+}
+
+async function finishRoundFromHistory(roundId) {
+    const confirmed = await showAppConfirm(t("finishConfirm"));
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        if (state.roundId === roundId) {
+            finalizeCurrentHoleTiming();
+            await saveCurrentHoleToDatabase();
+        }
+
+        await postApi("finish_round", { round_id: roundId });
+
+        if (state.roundId === roundId) {
+            clearLocalState();
+            resetRoundState();
+        }
+
+        if (state.detailRounds[roundId]) {
+            const refreshed = await postApi("get_round", { round_id: roundId });
+            state.detailRounds[roundId] = refreshed.round;
+        }
+
+        await refreshRounds();
+        await showAppAlert(t("finishSaved"));
+    } catch (error) {
+        await showAppAlert(t("finishFailed", { error: error.message }));
+    }
+}
+
 async function deleteRound(roundId) {
     const confirmed = await showAppConfirm(t("deleteConfirm"));
     if (!confirmed) {
@@ -1282,6 +1361,24 @@ function sumStrokes(strokes, start, end) {
     }
 
     return sum;
+}
+
+function getNextHoleIndexForRound(round) {
+    const totalHoles = Number(round?.total_holes ?? 0);
+    if (totalHoles <= 0) {
+        return 0;
+    }
+
+    const players = Array.isArray(round?.players) ? round.players : [];
+    const owner = players.find((player) => player.is_owner) || players[0];
+    const ownerStrokes = Array.isArray(owner?.strokes) ? owner.strokes : [];
+    const firstIncomplete = ownerStrokes.findIndex((stroke) => stroke === null || stroke === undefined);
+
+    if (firstIncomplete === -1) {
+        return totalHoles - 1;
+    }
+
+    return clamp(firstIncomplete, 0, totalHoles - 1);
 }
 
 function resetRoundState() {
@@ -1614,11 +1711,7 @@ async function showAppConfirm(message) {
 
 function showAppDialog(message, isConfirm) {
     if (!appDialog || !appDialogMessage || !appDialogOkBtn || !appDialogCancelBtn) {
-        if (isConfirm) {
-            return Promise.resolve(window.confirm(message));
-        }
-        window.alert(message);
-        return Promise.resolve(true);
+        return showFallbackDialog(message, isConfirm);
     }
 
     appDialogMessage.textContent = message;
@@ -1632,8 +1725,55 @@ function showAppDialog(message, isConfirm) {
         if (typeof appDialog.showModal === "function") {
             appDialog.showModal();
         } else {
-            resolve(isConfirm ? window.confirm(message) : true);
+            void showFallbackDialog(message, isConfirm).then(resolve);
         }
+    });
+}
+
+function showFallbackDialog(message, isConfirm) {
+    return new Promise((resolve) => {
+        const overlay = document.createElement("div");
+        overlay.className = "fallback-dialog-overlay";
+
+        const panel = document.createElement("div");
+        panel.className = "fallback-dialog-panel";
+
+        const title = document.createElement("h2");
+        title.textContent = t("dialogTitle");
+        panel.appendChild(title);
+
+        const text = document.createElement("p");
+        text.textContent = String(message);
+        panel.appendChild(text);
+
+        const actions = document.createElement("div");
+        actions.className = "dialog-actions";
+
+        if (isConfirm) {
+            const cancelButton = document.createElement("button");
+            cancelButton.type = "button";
+            cancelButton.className = "ghost-btn";
+            cancelButton.textContent = t("cancel");
+            cancelButton.addEventListener("click", () => {
+                overlay.remove();
+                resolve(false);
+            });
+            actions.appendChild(cancelButton);
+        }
+
+        const okButton = document.createElement("button");
+        okButton.type = "button";
+        okButton.className = "primary-btn";
+        okButton.textContent = t("okButton");
+        okButton.addEventListener("click", () => {
+            overlay.remove();
+            resolve(true);
+        });
+        actions.appendChild(okButton);
+
+        panel.appendChild(actions);
+        overlay.appendChild(panel);
+        document.body.appendChild(overlay);
     });
 }
 

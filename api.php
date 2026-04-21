@@ -474,9 +474,6 @@ function updateFinishedRound(PDO $pdo, array $input): void
     }
 
     $round = fetchRoundRow($pdo, $roundId, $userId);
-    if (empty($round['ended_at'])) {
-        sendJson(['error' => 'Bara avslutade ronder kan redigeras.'], 422);
-    }
 
     $totalHoles = (int) $round['total_holes'];
     $existingPlayers = fetchRoundPlayers($pdo, $roundId, true);
