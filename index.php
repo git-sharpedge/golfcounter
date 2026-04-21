@@ -6,11 +6,25 @@ declare(strict_types=1);
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Golfcounter - Registrera scorekort for 9/18 hal</title>
+    <meta name="description" content="Golfcounter gor det enkelt att registrera slag per hal, folja pagarende rond och se historik direkt i mobilen.">
+    <meta name="robots" content="index,follow,max-image-preview:large">
+    <link rel="canonical" href="https://golfcounter.sharpedge.se/">
+    <meta name="author" content="Sharp Edge AB">
+    <meta name="keywords" content="golf scorekort, golfrunda, registrera slag, golf app, scorekort mobil">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Golfcounter - Registrera scorekort for 9/18 hal">
+    <meta property="og:description" content="Fora score per hal, hantera medspelare och se rundhistorik i mobilen.">
+    <meta property="og:url" content="https://golfcounter.sharpedge.se/">
+    <meta property="og:image" content="https://golfcounter.sharpedge.se/assets/icons/icon.svg">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Golfcounter - Registrera scorekort for 9/18 hal">
+    <meta name="twitter:description" content="Fora score per hal, hantera medspelare och se rundhistorik i mobilen.">
+    <meta name="twitter:image" content="https://golfcounter.sharpedge.se/assets/icons/icon.svg">
     <meta name="theme-color" content="#1b5e20">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Golfcounter">
-    <title>SE Golfcounter</title>
     <link rel="manifest" href="./manifest.webmanifest">
     <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="./assets/icons/icon.svg">
@@ -19,6 +33,22 @@ declare(strict_types=1);
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="./assets/style.css">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Golfcounter",
+      "url": "https://golfcounter.sharpedge.se/",
+      "applicationCategory": "SportsApplication",
+      "operatingSystem": "Web",
+      "description": "Webapp for att registrera antal slag per hal, medspelare och rondhistorik.",
+      "inLanguage": ["sv-SE", "en-GB", "en-US"],
+      "publisher": {
+        "@type": "Organization",
+        "name": "Sharp Edge AB"
+      }
+    }
+    </script>
 </head>
 <body>
 <main class="app">
@@ -34,6 +64,16 @@ declare(strict_types=1);
                 </button>
             </div>
         </div>
+    </section>
+
+    <section class="card seo-intro">
+        <h2>Golf scorekort online for 9 och 18 hal</h2>
+        <p class="muted">Golfcounter hjalper dig att registrera slag per hal, folja pagaende rond och hantera medspelare direkt i mobilen.</p>
+        <ul>
+            <li>Registrera slag per hal med tydlig haloversikt.</li>
+            <li>Spela 9 eller 18 hal och fortsatt en pagaende rond.</li>
+            <li>Se rondhistorik, tider per hal och totalsummeringar.</li>
+        </ul>
     </section>
 
     <section id="menuDrawer" class="menu-drawer hidden">

@@ -191,6 +191,21 @@ body {
     margin-top: 12px;
 }
 
+.seo-intro h2 {
+    margin: 0 0 8px;
+}
+
+.seo-intro p {
+    margin: 0 0 8px;
+}
+
+.seo-intro ul {
+    margin: 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 4px;
+}
+
 .hidden {
     display: none !important;
 }

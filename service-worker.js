@@ -1,4 +1,4 @@
-const CACHE_NAME = "golfcounter-v5";
+const CACHE_NAME = "golfcounter-v6";
 const APP_SHELL = [
     "./",
     "./index.php",

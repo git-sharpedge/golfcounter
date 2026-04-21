@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://golfcounter.sharpedge.se/sitemap.xml
