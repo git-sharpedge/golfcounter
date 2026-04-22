@@ -157,6 +157,7 @@ const I18N = {
         createdBy: "Created by Sharp Edge AB",
         donationTitle: "Stöd Golfcounter",
         donateWithSwish: "Donera med Swish",
+        donateWithKofi: "Donera med Ko-Fi",
         donationQrText: "Skanna QR-koden för att donera via Swish.",
         loginFailed: "Kunde inte logga in: {error}",
         registerFailed: "Kunde inte registrera konto: {error}",
@@ -303,6 +304,7 @@ const I18N = {
         createdBy: "Created by Sharp Edge AB",
         donationTitle: "Support Golfcounter",
         donateWithSwish: "Donate with Swish",
+        donateWithKofi: "Donate via Ko-Fi",
         donationQrText: "Scan the QR code to donate via Swish.",
         loginFailed: "Could not sign in: {error}",
         registerFailed: "Could not register account: {error}",
@@ -534,6 +536,7 @@ registerForm.addEventListener("submit", async (event) => {
             golf_id: normalizeGolfId(golfId),
             password,
             consent_accepted: consentAccepted,
+            language: state.language,
         });
         setUser(response.user);
         registerForm.reset();

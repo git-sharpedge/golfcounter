@@ -74,6 +74,7 @@ function registerUser(PDO $pdo, array $input): void
     $email = strtolower(trim((string) ($input['email'] ?? '')));
     $golfId = trim((string) ($input['golf_id'] ?? ''));
     $password = (string) ($input['password'] ?? '');
+    $language = strtolower(trim((string) ($input['language'] ?? 'sv-se')));
     $consentAccepted = filter_var($input['consent_accepted'] ?? false, FILTER_VALIDATE_BOOL);
     $consentText = 'Jag godkänner lagring av förnamn, efternamn, golf-ID, golfbana, slag och tidpunkt för ronder.';
 
@@ -108,7 +109,7 @@ function registerUser(PDO $pdo, array $input): void
 
     $userId = (int) $pdo->lastInsertId();
     $_SESSION['user_id'] = $userId;
-    sendWelcomeEmail($name, $email, $password);
+    sendWelcomeEmail($name, $email, $password, $language);
 
     sendJson([
         'ok' => true,
@@ -219,42 +220,68 @@ function sendContactMessage(array $input): void
     sendJson(['ok' => true]);
 }
 
-function sendWelcomeEmail(string $name, string $email, string $password): void
+function sendWelcomeEmail(string $name, string $email, string $password, string $language): void
 {
     $safeName = str_replace(["\r", "\n"], '', trim($name));
     $safeEmail = str_replace(["\r", "\n"], '', strtolower(trim($email)));
     $to = $safeEmail;
-    $subject = 'Välkommen till Golfcounter';
+    $isEnglish = str_starts_with($language, 'en');
+    $subject = $isEnglish ? 'Welcome to Golfcounter' : 'Välkommen till Golfcounter';
     $serviceUrl = 'https://golfcounter.sharpedge.se/';
     $donationUrl = 'https://golfcounter.sharpedge.se/#donationSection';
+    $kofiUrl = 'https://ko-fi.com/G2G81Y932T';
     $swishQrUrl = 'https://golfcounter.sharpedge.se/assets/icons/swish.png';
     $safePassword = htmlspecialchars($password, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $safeNameHtml = htmlspecialchars($safeName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $safeEmailHtml = htmlspecialchars($safeEmail, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+    $headline = $isEnglish ? 'Welcome to Golfcounter' : 'Välkommen till Golfcounter';
+    $subline = $isEnglish
+        ? 'Your digital companion for round and hole stroke tracking'
+        : 'Din digitala följeslagare för slagregistrering under rundan';
+    $greeting = $isEnglish ? "Hi {$safeNameHtml}," : "Hej {$safeNameHtml},";
+    $intro = $isEnglish
+        ? 'Thank you for signing up! In Golfcounter, you can quickly and smoothly log strokes per hole and round, for yourself and your playing partners.'
+        : 'Tack för att du registrerat dig! I Golfcounter kan du enkelt och smidigt logga slag per hål och rond, både för dig själv och medspelare.';
+    $credentialsTitle = $isEnglish ? 'Sign-in credentials' : 'Inloggningsuppgifter';
+    $usernameLabel = $isEnglish ? 'Username' : 'Användarnamn';
+    $passwordLabel = $isEnglish ? 'Password' : 'Lösenord';
+    $gettingStartedTitle = $isEnglish ? 'Get started' : 'Kom igång';
+    $loginText = $isEnglish ? 'Sign in here:' : 'Logga in här:';
+    $supportTitle = $isEnglish ? 'Support the service' : 'Stöd tjänsten';
+    $supportText = $isEnglish
+        ? 'Golfcounter is provided for free, and we are grateful for any donation to help keep the service running.'
+        : 'Golfcounter tillhandahålls gratis, men vi tar tacksamt emot valfri donation för att kunna hålla tjänsten igång.';
+    $donationText = $isEnglish ? 'Donate here:' : 'Donera här:';
+    $kofiText = $isEnglish ? 'Donate via Ko-Fi:' : 'Donera via Ko-Fi:';
+    $qrText = $isEnglish ? 'Swish QR:' : 'Swish QR:';
+    $closing = $isEnglish ? 'Kind regards,' : 'Vänliga hälsningar,';
+    $teamText = $isEnglish ? 'The Golfcounter team' : 'Teamet på Golfcounter';
 
     $body = "<html><body style=\"margin:0;padding:0;background:#f3f8f3;font-family:Arial,sans-serif;color:#102214;line-height:1.55;\">"
         . "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"padding:24px 12px;\">"
         . "<tr><td align=\"center\">"
         . "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"max-width:620px;background:#ffffff;border:1px solid #d9e8da;border-radius:14px;overflow:hidden;\">"
         . "<tr><td style=\"background:#1b5e20;color:#ffffff;padding:18px 20px;\">"
-        . "<h1 style=\"margin:0;font-size:22px;line-height:1.2;\">Välkommen till Golfcounter</h1>"
-        . "<p style=\"margin:8px 0 0;font-size:14px;opacity:0.95;\">Din digitala följeslagare för slagregistrering under rundan</p>"
+        . "<h1 style=\"margin:0;font-size:22px;line-height:1.2;\">{$headline}</h1>"
+        . "<p style=\"margin:8px 0 0;font-size:14px;opacity:0.95;\">{$subline}</p>"
         . "</td></tr>"
         . "<tr><td style=\"padding:20px;\">"
-        . "<p style=\"margin:0 0 14px;\">Hej {$safeNameHtml},</p>"
-        . "<p style=\"margin:0 0 18px;\">Tack för att du registrerat dig! I Golfcounter kan du enkelt och smidigt logga slag per hål och rond, både för dig själv och medspelare.</p>"
-        . "<h2 style=\"margin:0 0 8px;font-size:16px;color:#1b5e20;\">Inloggningsuppgifter</h2>"
+        . "<p style=\"margin:0 0 14px;\">{$greeting}</p>"
+        . "<p style=\"margin:0 0 18px;\">{$intro}</p>"
+        . "<h2 style=\"margin:0 0 8px;font-size:16px;color:#1b5e20;\">{$credentialsTitle}</h2>"
         . "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"border:1px solid #d6e1d7;border-radius:10px;background:#f7fbf7;margin-bottom:18px;\">"
-        . "<tr><td style=\"padding:12px 14px;\"><strong>Användarnamn:</strong> {$safeEmailHtml}<br><strong>Lösenord:</strong> {$safePassword}</td></tr>"
+        . "<tr><td style=\"padding:12px 14px;\"><strong>{$usernameLabel}:</strong> {$safeEmailHtml}<br><strong>{$passwordLabel}:</strong> {$safePassword}</td></tr>"
         . "</table>"
-        . "<h2 style=\"margin:0 0 8px;font-size:16px;color:#1b5e20;\">Kom igång</h2>"
-        . "<p style=\"margin:0 0 18px;\">Logga in här: <a href=\"{$serviceUrl}\" style=\"color:#1b5e20;font-weight:700;\">{$serviceUrl}</a></p>"
-        . "<h2 style=\"margin:0 0 8px;font-size:16px;color:#1b5e20;\">Stöd tjänsten</h2>"
-        . "<p style=\"margin:0 0 10px;\">Golfcounter tillhandahålls gratis, men vi tar tacksamt emot valfri donation för att kunna hålla tjänsten igång.</p>"
-        . "<p style=\"margin:0 0 10px;\">Donera här: <a href=\"{$donationUrl}\" style=\"color:#1b5e20;font-weight:700;\">{$donationUrl}</a></p>"
-        . "<p style=\"margin:0 0 8px;\">Swish QR:</p>"
+        . "<h2 style=\"margin:0 0 8px;font-size:16px;color:#1b5e20;\">{$gettingStartedTitle}</h2>"
+        . "<p style=\"margin:0 0 18px;\">{$loginText} <a href=\"{$serviceUrl}\" style=\"color:#1b5e20;font-weight:700;\">{$serviceUrl}</a></p>"
+        . "<h2 style=\"margin:0 0 8px;font-size:16px;color:#1b5e20;\">{$supportTitle}</h2>"
+        . "<p style=\"margin:0 0 10px;\">{$supportText}</p>"
+        . "<p style=\"margin:0 0 10px;\">{$donationText} <a href=\"{$donationUrl}\" style=\"color:#1b5e20;font-weight:700;\">{$donationUrl}</a></p>"
+        . "<p style=\"margin:0 0 10px;\">{$kofiText} <a href=\"{$kofiUrl}\" style=\"color:#1b5e20;font-weight:700;\">{$kofiUrl}</a></p>"
+        . "<p style=\"margin:0 0 8px;\">{$qrText}</p>"
         . "<p style=\"margin:0 0 18px;\"><img src=\"{$swishQrUrl}\" alt=\"Swish QR för donation\" style=\"max-width:220px;height:auto;border:1px solid #d6dfd7;border-radius:8px;background:#fff;\"></p>"
-        . "<p style=\"margin:0;\">Vänliga hälsningar,<br><strong>Teamet på Golfcounter</strong></p>"
+        . "<p style=\"margin:0;\">{$closing}<br><strong>{$teamText}</strong></p>"
         . "</td></tr>"
         . "</table>"
         . "</td></tr>"

@@ -358,12 +358,20 @@ declare(strict_types=1);
     <section id="donationSection" class="donation-section">
         <p class="donation-title" data-i18n="donationTitle">Support Golfcounter</p>
         <a id="swishDonateLink" class="primary-btn hidden" target="_blank" rel="noopener noreferrer">
-            <i class="fa-solid fa-heart"></i> <span data-i18n="donateWithSwish">Donera med Swish</span>
+            <i class="fa-solid fa-heart"></i>
+            <span data-i18n="donateWithSwish">Donera med Swish</span>
+        </a>
+        <a id="kofiDonateLink" class="primary-btn" href="https://ko-fi.com/G2G81Y932T" target="_blank" rel="noopener noreferrer">
+            <span class="donation-btn-icon" aria-hidden="true">
+                <img class="donation-btn-logo" src="https://storage.ko-fi.com/cdn/cup-border.png" alt="">
+            </span>
+            <span data-i18n="donateWithKofi">Donera med Ko-Fi</span>
         </a>
         <div id="donationQrBlock" class="donation-qr hidden">
             <p class="muted" data-i18n="donationQrText">Skanna QR-koden för att donera via Swish.</p>
             <img src="./assets/icons/swish.png" alt="Swish QR-kod">
         </div>
+        <div id="kofiWidgetWrap"></div>
     </section>
 </footer>
 
@@ -441,6 +449,13 @@ declare(strict_types=1);
     </div>
 </template>
 
+<script type="text/javascript" src="https://storage.ko-fi.com/cdn/widget/Widget_2.js"></script>
+<script type="text/javascript">
+if (typeof kofiwidget2 !== "undefined") {
+    kofiwidget2.init("Support me on Ko-fi", "#72a4f2", "G2G81Y932T");
+    kofiwidget2.draw();
+}
+</script>
 <script src="./assets/app.js" defer></script>
 </body>
 </html>
