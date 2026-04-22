@@ -206,6 +206,27 @@ body {
     gap: 4px;
 }
 
+.guide-card {
+    display: grid;
+    gap: 12px;
+}
+
+.guide-card h2 {
+    margin: 0;
+}
+
+.guide-section h3 {
+    margin: 0 0 6px;
+}
+
+.guide-section ul,
+.guide-section ol {
+    margin: 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 4px;
+}
+
 .hidden {
     display: none !important;
 }
@@ -258,12 +279,17 @@ input[type="text"] {
 
 input[type="email"],
 input[type="password"],
+textarea,
 select {
     border: 1px solid #d0d9d1;
     border-radius: 10px;
     padding: 12px;
     font-size: 1rem;
     font-family: inherit;
+}
+
+textarea {
+    resize: vertical;
 }
 
 fieldset {
@@ -663,6 +689,35 @@ button {
     display: grid;
     gap: 16px;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    align-items: start;
+}
+
+.auth-grid .auth-form {
+    border: 1px solid #d9e2da;
+    border-radius: 12px;
+    padding: 12px;
+    background: #fbfdfb;
+    align-content: start;
+}
+
+.auth-grid .auth-form h3 {
+    margin: 0;
+}
+
+.auth-grid .auth-form input[type="text"],
+.auth-grid .auth-form input[type="email"],
+.auth-grid .auth-form input[type="password"] {
+    height: 46px;
+    min-height: 46px;
+}
+
+.auth-grid .auth-form .primary-btn {
+    width: 100%;
+}
+
+#loginForm .text-btn {
+    margin-top: 4px;
+    justify-self: start;
 }
 
 .top-gap {

@@ -1,11 +1,15 @@
 const authSection = document.getElementById("authSection");
 const appSection = document.getElementById("appSection");
+const seoIntroSection = document.getElementById("seoIntroSection");
 const loginForm = document.getElementById("loginForm");
 const registerForm = document.getElementById("registerForm");
 const accountForm = document.getElementById("accountForm");
+const contactForm = document.getElementById("contactForm");
 const accountEmail = document.getElementById("accountEmail");
 const logoutBtn = document.getElementById("logoutBtn");
+const menuLogoutBtn = document.getElementById("menuLogoutBtn");
 const menuButtons = Array.from(document.querySelectorAll(".menu-btn"));
+const authOnlyMenuButtons = Array.from(document.querySelectorAll(".menu-btn.requires-auth"));
 const views = Array.from(document.querySelectorAll(".view"));
 const infoDialog = document.getElementById("infoDialog");
 const infoOpenBtn = document.getElementById("infoOpenBtn");
@@ -59,6 +63,7 @@ const roundsList = document.getElementById("roundsList");
 
 const STORAGE_KEY = "golfcounter_active_round_v2";
 const LANGUAGE_STORAGE_KEY = "golfcounter_language";
+const LOGGED_OUT_MENU_VIEW_TTL_MS = 60 * 1000;
 
 const I18N = {
     "sv-SE": {
@@ -86,7 +91,37 @@ const I18N = {
         menuNewRound: "Ny rond",
         menuRounds: "Rundor",
         menuAccount: "Konto",
+        menuInfo: "Info",
+        menuContact: "Kontakt",
         menuDonate: "Donera",
+        infoSectionTitle: "Info",
+        aboutTitle: "Om Golfcounter",
+        aboutIntro: "Golfcounter är främst till för att hjälpa dig räkna och hålla koll på dina slag under pågående hål och under hela rundan.",
+        aboutBody1: "När du spelar kan du enkelt registrera slag för dig själv och medspelare, byta hål och se status i realtid så att du alltid vet var ni ligger.",
+        aboutBody2: "Efter avslutat hål eller rond fungerar appen som ett praktiskt stöd när du fyller i scorekort, med historik, tider per hål och tydliga sammanställningar.",
+        aboutBody3: "Målet är att göra scorehanteringen snabb, tydlig och enkel direkt i mobilen - både under spelet och efteråt.",
+        helpTitle: "Hjälp/Guide",
+        helpGettingStartedTitle: "Kom igång",
+        helpGettingStartedStep1: "Skapa konto och logga in.",
+        helpGettingStartedStep2: "Gå till Ny rond och fyll i banans namn.",
+        helpGettingStartedStep3: "Välj 9 eller 18 hål och starta ronden.",
+        helpSoloTitle: "Spela ensam",
+        helpSoloStep1: "Du är automatiskt aktiv spelare.",
+        helpSoloStep2: "Använd plus och minus för att registrera slag per hål.",
+        helpSoloStep3: "Byt hål i listan och avsluta ronden på sista hålet.",
+        helpFriendsTitle: "Spela med vänner",
+        helpFriendsStep1: "Lägg till medspelare innan rondstart (max 3 medspelare).",
+        helpFriendsStep2: "Växla aktiv spelare med spelarknapparna.",
+        helpFriendsStep3: "Registrera slag för varje spelare och hål.",
+        helpAfterTitle: "Hantera rundor i efterhand",
+        helpAfterStep1: "Öppna Rundor för att visa historik och detaljer.",
+        helpAfterStep2: "Pågående rond kan fortsättas eller avslutas.",
+        helpAfterStep3: "Avslutade ronder kan redigeras eller tas bort.",
+        seoIntroTitle: "Golf scorekort online för 9 och 18 hål",
+        seoIntroText: "Golfcounter hjälper dig att registrera slag per hål, följa pågående rond och hantera medspelare direkt i mobilen.",
+        seoIntroBullet1: "Registrera slag per hål med tydlig hålöversikt.",
+        seoIntroBullet2: "Spela 9 eller 18 hål och fortsätt en pågående rond.",
+        seoIntroBullet3: "Se rondhistorik, tider per hål och totalsummeringar.",
         noRoundTitle: "Ingen pågående rond",
         noRoundText: "Starta en ny rond för att börja registrera slag.",
         startRoundTitle: "Starta ny rond",
@@ -105,6 +140,11 @@ const I18N = {
         allRoundsTitle: "Alla rundor",
         latestFirstText: "Senaste ronden visas högst upp.",
         accountTitle: "Kontohantering",
+        contactTitle: "Kontakt",
+        contactIntro: "Skicka ett meddelande till oss om du har frågor eller behöver hjälp.",
+        contactMessageLabel: "Meddelande",
+        contactMessagePlaceholder: "Skriv ditt meddelande här...",
+        contactSendButton: "Skicka meddelande",
         currentPasswordLabel: "Nuvarande lösenord (krävs endast vid byte)",
         newPasswordLabel: "Nytt lösenord",
         saveAccountButton: "Spara konto",
@@ -129,6 +169,8 @@ const I18N = {
         forgotPasswordFailed: "Kunde inte återställa lösenord: {error}",
         accountUpdated: "Konto uppdaterat.",
         saveAccountFailed: "Kunde inte spara konto: {error}",
+        contactSent: "Tack! Ditt meddelande är skickat.",
+        contactFailed: "Kunde inte skicka meddelandet: {error}",
         logoutFailed: "Kunde inte logga ut: {error}",
         maxPlayers: "Max 4 spelare per rond (du + 3 medspelare).",
         startRoundFailed: "Kunde inte starta rond: {error}",
@@ -195,7 +237,37 @@ const I18N = {
         menuNewRound: "New round",
         menuRounds: "Rounds",
         menuAccount: "Account",
+        menuInfo: "Info",
+        menuContact: "Contact",
         menuDonate: "Donate",
+        infoSectionTitle: "Info",
+        aboutTitle: "About Golfcounter",
+        aboutIntro: "Golfcounter is primarily designed to help you count and keep track of your strokes during the current hole and throughout the full round.",
+        aboutBody1: "While playing, you can quickly register strokes for yourself and your playing partners, switch holes, and see round status in real time.",
+        aboutBody2: "After each hole or completed round, the app works as practical support when filling out your scorecard, with history, hole times, and clear summaries.",
+        aboutBody3: "The goal is to make score handling fast, clear, and easy on mobile - both during play and afterwards.",
+        helpTitle: "Help/Guide",
+        helpGettingStartedTitle: "Getting started",
+        helpGettingStartedStep1: "Create an account and sign in.",
+        helpGettingStartedStep2: "Go to New round and enter the course name.",
+        helpGettingStartedStep3: "Choose 9 or 18 holes and start the round.",
+        helpSoloTitle: "Playing solo",
+        helpSoloStep1: "You are automatically set as the active player.",
+        helpSoloStep2: "Use plus and minus to register strokes per hole.",
+        helpSoloStep3: "Switch holes in the list and finish the round on the last hole.",
+        helpFriendsTitle: "Playing with friends",
+        helpFriendsStep1: "Add playing partners before starting the round (max 3 partners).",
+        helpFriendsStep2: "Switch active player using the player buttons.",
+        helpFriendsStep3: "Register strokes for each player and hole.",
+        helpAfterTitle: "Manage rounds afterwards",
+        helpAfterStep1: "Open Rounds to view history and details.",
+        helpAfterStep2: "An ongoing round can be resumed or finished.",
+        helpAfterStep3: "Finished rounds can be edited or deleted.",
+        seoIntroTitle: "Golf scorecard online for 9 and 18 holes",
+        seoIntroText: "Golfcounter helps you track strokes per hole, follow an ongoing round, and manage playing partners directly on mobile.",
+        seoIntroBullet1: "Track strokes per hole with a clear hole overview.",
+        seoIntroBullet2: "Play 9 or 18 holes and continue an ongoing round.",
+        seoIntroBullet3: "View round history, hole times, and total summaries.",
         noRoundTitle: "No active round",
         noRoundText: "Start a new round to begin tracking strokes.",
         startRoundTitle: "Start new round",
@@ -214,6 +286,11 @@ const I18N = {
         allRoundsTitle: "All rounds",
         latestFirstText: "Most recent round appears first.",
         accountTitle: "Account settings",
+        contactTitle: "Contact",
+        contactIntro: "Send us a message if you have questions or need help.",
+        contactMessageLabel: "Message",
+        contactMessagePlaceholder: "Write your message here...",
+        contactSendButton: "Send message",
         currentPasswordLabel: "Current password (only required for password change)",
         newPasswordLabel: "New password",
         saveAccountButton: "Save account",
@@ -238,6 +315,8 @@ const I18N = {
         forgotPasswordFailed: "Could not reset password: {error}",
         accountUpdated: "Account updated.",
         saveAccountFailed: "Could not save account: {error}",
+        contactSent: "Thanks! Your message has been sent.",
+        contactFailed: "Could not send the message: {error}",
         logoutFailed: "Could not sign out: {error}",
         maxPlayers: "Maximum 4 players per round (you + 3 partners).",
         startRoundFailed: "Could not start round: {error}",
@@ -301,7 +380,11 @@ const state = {
     expandedRoundId: null,
     editingRoundId: null,
     detailRounds: {},
+    lastPublicMenuActivationAt: 0,
+    loggedOutContactDraftActive: false,
 };
+
+let loggedOutViewHideTimer = null;
 
 if (languageSelect) {
     languageSelect.value = state.language;
@@ -487,21 +570,77 @@ accountForm.addEventListener("submit", async (event) => {
     }
 });
 
-logoutBtn.addEventListener("click", async () => {
+if (contactForm) {
+    contactForm.addEventListener("input", () => {
+        if (state.user) {
+            return;
+        }
+        state.loggedOutContactDraftActive = true;
+        clearLoggedOutViewHideTimer();
+    });
+
+    contactForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!state.user) {
+            state.loggedOutContactDraftActive = false;
+            state.lastPublicMenuActivationAt = Date.now();
+            scheduleLoggedOutViewHide();
+        }
+        try {
+            await postApi("contact_message", {
+                name: document.getElementById("contactName").value.trim(),
+                email: document.getElementById("contactEmail").value.trim(),
+                message: document.getElementById("contactMessage").value.trim(),
+            });
+            contactForm.reset();
+            if (state.user) {
+                document.getElementById("contactName").value = state.user.name || "";
+                document.getElementById("contactEmail").value = state.user.email || "";
+            }
+            await showAppAlert(t("contactSent"));
+        } catch (error) {
+            await showAppAlert(t("contactFailed", { error: error.message }));
+        }
+    });
+}
+
+if (logoutBtn) {
+    logoutBtn.addEventListener("click", async () => {
+        await handleLogout();
+    });
+}
+
+if (menuLogoutBtn) {
+    menuLogoutBtn.addEventListener("click", async () => {
+        await handleLogout();
+    });
+}
+
+async function handleLogout() {
     try {
         await postApi("logout");
         clearLocalState();
         resetRoundState();
         setUser(null);
+        closeMenuDrawer();
     } catch (error) {
         await showAppAlert(t("logoutFailed", { error: error.message }));
     }
-});
+}
 
 menuButtons.forEach((button) => {
     button.addEventListener("click", async () => {
         const targetView = button.dataset.view;
         if (!targetView) {
+            return;
+        }
+
+        if (!state.user) {
+            if (button.classList.contains("requires-auth")) {
+                return;
+            }
+            activateLoggedOutMenuView(targetView);
+            closeMenuDrawer();
             return;
         }
 
@@ -515,7 +654,13 @@ menuButtons.forEach((button) => {
 
 if (menuToggleBtn && menuDrawer) {
     menuToggleBtn.addEventListener("click", () => {
-        menuDrawer.classList.toggle("hidden");
+        const shouldOpen = menuDrawer.classList.contains("hidden");
+        if (shouldOpen) {
+            positionMenuDrawer();
+            menuDrawer.classList.remove("hidden");
+            return;
+        }
+        closeMenuDrawer();
     });
 
     document.addEventListener("click", (event) => {
@@ -530,6 +675,18 @@ if (menuToggleBtn && menuDrawer) {
             closeMenuDrawer();
         }
     });
+
+    window.addEventListener("resize", () => {
+        if (!menuDrawer.classList.contains("hidden")) {
+            positionMenuDrawer();
+        }
+    });
+
+    window.addEventListener("scroll", () => {
+        if (!menuDrawer.classList.contains("hidden")) {
+            positionMenuDrawer();
+        }
+    }, { passive: true });
 }
 
 if (menuDonateLink) {
@@ -674,9 +831,17 @@ async function initializeApp() {
 
 function setUser(user) {
     state.user = user;
-    appMenu.classList.toggle("hidden", !user);
+    appMenu.classList.remove("hidden");
+    authOnlyMenuButtons.forEach((button) => {
+        button.classList.toggle("hidden", !user);
+    });
+    if (seoIntroSection) {
+        seoIntroSection.classList.add("hidden");
+    }
 
     if (!user) {
+        state.loggedOutContactDraftActive = false;
+        clearLoggedOutViewHideTimer();
         authSection.classList.remove("hidden");
         appSection.classList.add("hidden");
         closeMenuDrawer();
@@ -684,11 +849,18 @@ function setUser(user) {
         return;
     }
 
+    clearLoggedOutViewHideTimer();
     authSection.classList.add("hidden");
     appSection.classList.remove("hidden");
     document.getElementById("accountName").value = user.name || "";
     document.getElementById("accountGolfId").value = user.golf_id || "";
     accountEmail.textContent = t("loggedInAs", { email: user.email });
+    const contactNameInput = document.getElementById("contactName");
+    const contactEmailInput = document.getElementById("contactEmail");
+    if (contactNameInput && contactEmailInput) {
+        contactNameInput.value = user.name || "";
+        contactEmailInput.value = user.email || "";
+    }
     updateScrollLock();
 }
 
@@ -702,6 +874,43 @@ function showView(viewId) {
     });
 
     updateScrollLock();
+}
+
+function activateLoggedOutMenuView(viewId) {
+    state.lastPublicMenuActivationAt = Date.now();
+    appSection.classList.remove("hidden");
+    showView(viewId);
+    scheduleLoggedOutViewHide();
+}
+
+function clearLoggedOutViewHideTimer() {
+    if (loggedOutViewHideTimer !== null) {
+        window.clearTimeout(loggedOutViewHideTimer);
+        loggedOutViewHideTimer = null;
+    }
+}
+
+function scheduleLoggedOutViewHide() {
+    clearLoggedOutViewHideTimer();
+    if (state.user) {
+        return;
+    }
+
+    const elapsed = Date.now() - state.lastPublicMenuActivationAt;
+    const remaining = Math.max(0, LOGGED_OUT_MENU_VIEW_TTL_MS - elapsed);
+    loggedOutViewHideTimer = window.setTimeout(() => {
+        if (state.user) {
+            return;
+        }
+        if (state.loggedOutContactDraftActive) {
+            return;
+        }
+        const stillExpired = Date.now() - state.lastPublicMenuActivationAt >= LOGGED_OUT_MENU_VIEW_TTL_MS;
+        if (stillExpired) {
+            appSection.classList.add("hidden");
+            updateScrollLock();
+        }
+    }, remaining);
 }
 
 function addTeammateRow(player = null) {
@@ -1480,6 +1689,26 @@ function updateTeammateControls() {
 
 function closeMenuDrawer() {
     menuDrawer.classList.add("hidden");
+}
+
+function positionMenuDrawer() {
+    if (!menuDrawer || !menuToggleBtn) {
+        return;
+    }
+
+    if (window.matchMedia("(max-width: 699px)").matches) {
+        menuDrawer.style.top = "";
+        menuDrawer.style.right = "";
+        return;
+    }
+
+    const buttonRect = menuToggleBtn.getBoundingClientRect();
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+    const top = Math.max(8, buttonRect.bottom + 8);
+    const right = Math.max(8, viewportWidth - buttonRect.right);
+
+    menuDrawer.style.top = `${Math.round(top)}px`;
+    menuDrawer.style.right = `${Math.round(right)}px`;
 }
 
 function updateScrollLock() {

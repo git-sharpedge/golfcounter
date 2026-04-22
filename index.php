@@ -56,9 +56,6 @@ declare(strict_types=1);
         <div class="hero-top">
             <h1><i class="fa-solid fa-golf-ball-tee"></i> <span data-i18n="appTitle">SE Golfcounter</span></h1>
             <div class="hero-actions">
-                <button id="infoOpenBtn" type="button" class="icon-btn" data-i18n-aria-label="showInfoAria" aria-label="Visa information">
-                <i class="fa-solid fa-circle-info"></i>
-                </button>
                 <button id="menuToggleBtn" type="button" class="icon-btn" data-i18n-aria-label="menuToggleAria" aria-label="Öppna meny">
                     <i class="fa-solid fa-bars"></i>
                 </button>
@@ -66,14 +63,12 @@ declare(strict_types=1);
         </div>
     </section>
 
-    <section class="card seo-intro">
-        <h2>Golf scorekort online for 9 och 18 hal</h2>
-        <p class="muted">Golfcounter hjalper dig att registrera slag per hal, folja pagaende rond och hantera medspelare direkt i mobilen.</p>
-        <ul>
-            <li>Registrera slag per hal med tydlig haloversikt.</li>
-            <li>Spela 9 eller 18 hal och fortsatt en pagaende rond.</li>
-            <li>Se rondhistorik, tider per hal och totalsummeringar.</li>
-        </ul>
+    <section id="seoIntroSection" class="card about-card">
+        <h2 data-i18n="aboutTitle">Om Golfcounter</h2>
+        <p class="muted" data-i18n="aboutIntro">Golfcounter är främst till för att hjälpa dig räkna och hålla koll på dina slag under pågående hål och under hela rundan.</p>
+        <p data-i18n="aboutBody1">När du spelar kan du enkelt registrera slag för dig själv och medspelare, byta hål och se status i realtid så att du alltid vet var ni ligger.</p>
+        <p data-i18n="aboutBody2">Efter avslutat hål eller rond fungerar appen som ett praktiskt stöd när du fyller i scorekort, med historik, tider per hål och tydliga sammanställningar.</p>
+        <p data-i18n="aboutBody3">Målet är att göra scorehanteringen snabb, tydlig och enkel direkt i mobilen - både under spelet och efteråt.</p>
     </section>
 
     <section id="menuDrawer" class="menu-drawer hidden">
@@ -89,14 +84,23 @@ declare(strict_types=1);
             </label>
 
             <nav id="appMenu" class="menu hidden">
-                <button class="menu-btn active" data-view="playView">
+                <button class="menu-btn active requires-auth" data-view="playView">
                     <i class="fa-solid fa-flag-checkered"></i> <span data-i18n="menuNewRound">Ny rond</span>
                 </button>
-                <button class="menu-btn" data-view="historyView">
+                <button class="menu-btn requires-auth" data-view="historyView">
                     <i class="fa-solid fa-clock-rotate-left"></i> <span data-i18n="menuRounds">Rundor</span>
                 </button>
-                <button class="menu-btn" data-view="accountView">
+                <button class="menu-btn requires-auth" data-view="infoView">
+                    <i class="fa-solid fa-circle-info"></i> <span data-i18n="menuInfo">Info</span>
+                </button>
+                <button class="menu-btn" data-view="contactView">
+                    <i class="fa-solid fa-envelope"></i> <span data-i18n="menuContact">Kontakt</span>
+                </button>
+                <button class="menu-btn requires-auth" data-view="accountView">
                     <i class="fa-solid fa-user-gear"></i> <span data-i18n="menuAccount">Konto</span>
+                </button>
+                <button id="menuLogoutBtn" class="menu-btn requires-auth" type="button">
+                    <i class="fa-solid fa-right-from-bracket"></i> <span data-i18n="logoutButton">Logga ut</span>
                 </button>
             </nav>
             <a id="menuDonateLink" class="menu-btn" href="#donationSection">
@@ -108,7 +112,7 @@ declare(strict_types=1);
     <section id="authSection" class="card">
         <h2><i class="fa-solid fa-user-lock"></i> <span data-i18n="authTitle">Logga in eller skapa konto</span></h2>
         <div class="auth-grid">
-            <form id="loginForm">
+            <form id="loginForm" class="auth-form">
                 <h3 data-i18n="loginTitle">Logga in</h3>
                 <label>
                     <span data-i18n="emailLabel">E-post</span>
@@ -126,7 +130,7 @@ declare(strict_types=1);
                 </button>
             </form>
 
-            <form id="registerForm">
+            <form id="registerForm" class="auth-form">
                 <h3 data-i18n="registerTitle">Skapa konto</h3>
                 <label>
                     <span data-i18n="nameLabel">Namn</span>
@@ -271,6 +275,79 @@ declare(strict_types=1);
                 <button id="logoutBtn" class="danger-btn top-gap">
                     <i class="fa-solid fa-right-from-bracket"></i> <span data-i18n="logoutButton">Logga ut</span>
                 </button>
+            </section>
+        </section>
+
+        <section id="contactView" class="view hidden">
+            <section class="card">
+                <h2><i class="fa-solid fa-envelope"></i> <span data-i18n="contactTitle">Kontakt</span></h2>
+                <p class="muted" data-i18n="contactIntro">Skicka ett meddelande till oss om du har frågor eller behöver hjälp.</p>
+                <form id="contactForm">
+                    <label>
+                        <span data-i18n="nameLabel">Namn</span>
+                        <input type="text" id="contactName" required maxlength="120">
+                    </label>
+                    <label>
+                        <span data-i18n="emailLabel">E-post</span>
+                        <input type="email" id="contactEmail" data-i18n-placeholder="emailPlaceholder" placeholder="name@example.com" required maxlength="191">
+                    </label>
+                    <label>
+                        <span data-i18n="contactMessageLabel">Meddelande</span>
+                        <textarea id="contactMessage" rows="6" required maxlength="4000" data-i18n-placeholder="contactMessagePlaceholder" placeholder="Skriv ditt meddelande här..."></textarea>
+                    </label>
+                    <button type="submit" class="primary-btn">
+                        <i class="fa-solid fa-paper-plane"></i> <span data-i18n="contactSendButton">Skicka meddelande</span>
+                    </button>
+                </form>
+            </section>
+        </section>
+
+        <section id="infoView" class="view hidden">
+            <section class="card about-card">
+                <h2 data-i18n="infoSectionTitle">Info</h2>
+                <p class="muted" data-i18n="aboutIntro">Golfcounter är främst till för att hjälpa dig räkna och hålla koll på dina slag under pågående hål och under hela rundan.</p>
+                <p data-i18n="aboutBody1">När du spelar kan du enkelt registrera slag för dig själv och medspelare, byta hål och se status i realtid så att du alltid vet var ni ligger.</p>
+                <p data-i18n="aboutBody2">Efter avslutat hål eller rond fungerar appen som ett praktiskt stöd när du fyller i scorekort, med historik, tider per hål och tydliga sammanställningar.</p>
+                <p data-i18n="aboutBody3">Målet är att göra scorehanteringen snabb, tydlig och enkel direkt i mobilen - både under spelet och efteråt.</p>
+            </section>
+            <section class="card guide-card">
+                <h2><i class="fa-solid fa-circle-question"></i> <span data-i18n="helpTitle">Hjälp/Guide</span></h2>
+
+                <article class="guide-section">
+                    <h3 data-i18n="helpGettingStartedTitle">Kom igång</h3>
+                    <ol>
+                        <li data-i18n="helpGettingStartedStep1">Skapa konto och logga in.</li>
+                        <li data-i18n="helpGettingStartedStep2">Gå till Ny rond och fyll i banans namn.</li>
+                        <li data-i18n="helpGettingStartedStep3">Välj 9 eller 18 hål och starta ronden.</li>
+                    </ol>
+                </article>
+
+                <article class="guide-section">
+                    <h3 data-i18n="helpSoloTitle">Spela ensam</h3>
+                    <ul>
+                        <li data-i18n="helpSoloStep1">Du är automatiskt aktiv spelare.</li>
+                        <li data-i18n="helpSoloStep2">Använd plus och minus för att registrera slag per hål.</li>
+                        <li data-i18n="helpSoloStep3">Byt hål i listan och avsluta ronden på sista hålet.</li>
+                    </ul>
+                </article>
+
+                <article class="guide-section">
+                    <h3 data-i18n="helpFriendsTitle">Spela med vänner</h3>
+                    <ul>
+                        <li data-i18n="helpFriendsStep1">Lägg till medspelare innan rondstart (max 3 medspelare).</li>
+                        <li data-i18n="helpFriendsStep2">Växla aktiv spelare med spelarknapparna.</li>
+                        <li data-i18n="helpFriendsStep3">Registrera slag för varje spelare och hål.</li>
+                    </ul>
+                </article>
+
+                <article class="guide-section">
+                    <h3 data-i18n="helpAfterTitle">Hantera rundor i efterhand</h3>
+                    <ul>
+                        <li data-i18n="helpAfterStep1">Öppna Rundor för att visa historik och detaljer.</li>
+                        <li data-i18n="helpAfterStep2">Pågående rond kan fortsättas eller avslutas.</li>
+                        <li data-i18n="helpAfterStep3">Avslutade ronder kan redigeras eller tas bort.</li>
+                    </ul>
+                </article>
             </section>
         </section>
     </section>

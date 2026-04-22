@@ -28,6 +28,9 @@ try {
         case 'forgot_password':
             forgotPassword($pdo, $input);
             break;
+        case 'contact_message':
+            sendContactMessage($input);
+            break;
         case 'logout':
             logoutUser();
             break;
@@ -105,6 +108,7 @@ function registerUser(PDO $pdo, array $input): void
 
     $userId = (int) $pdo->lastInsertId();
     $_SESSION['user_id'] = $userId;
+    sendWelcomeEmail($name, $email, $password);
 
     sendJson([
         'ok' => true,
@@ -176,6 +180,96 @@ function forgotPassword(PDO $pdo, array $input): void
     ]);
 
     sendJson(['ok' => true]);
+}
+
+function sendContactMessage(array $input): void
+{
+    $name = trim((string) ($input['name'] ?? ''));
+    $email = strtolower(trim((string) ($input['email'] ?? '')));
+    $message = trim((string) ($input['message'] ?? ''));
+
+    if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || $message === '') {
+        sendJson(['error' => 'Fyll i namn, giltig e-post och meddelande.'], 422);
+    }
+    if (strlen($message) > 4000) {
+        sendJson(['error' => 'Meddelandet är för långt.'], 422);
+    }
+
+    $safeName = str_replace(["\r", "\n"], '', $name);
+    $safeEmail = str_replace(["\r", "\n"], '', $email);
+    $to = 'golfcounter@sharpedge.se';
+    $subject = 'Golfcounter kontaktformulär';
+    $body = "Nytt meddelande från kontaktformulär:\n\n"
+        . "Namn: {$safeName}\n"
+        . "E-post: {$safeEmail}\n\n"
+        . "Meddelande:\n{$message}\n";
+
+    $headers = [
+        'MIME-Version: 1.0',
+        'Content-Type: text/plain; charset=UTF-8',
+        'From: Golfcounter <golfcounter@sharpedge.se>',
+        "Reply-To: {$safeEmail}",
+    ];
+
+    $sent = mail($to, $subject, $body, implode("\r\n", $headers));
+    if (!$sent) {
+        sendJson(['error' => 'E-post kunde inte skickas just nu.'], 500);
+    }
+
+    sendJson(['ok' => true]);
+}
+
+function sendWelcomeEmail(string $name, string $email, string $password): void
+{
+    $safeName = str_replace(["\r", "\n"], '', trim($name));
+    $safeEmail = str_replace(["\r", "\n"], '', strtolower(trim($email)));
+    $to = $safeEmail;
+    $subject = 'Välkommen till Golfcounter';
+    $serviceUrl = 'https://golfcounter.sharpedge.se/';
+    $donationUrl = 'https://golfcounter.sharpedge.se/#donationSection';
+    $swishQrUrl = 'https://golfcounter.sharpedge.se/assets/icons/swish.png';
+    $safePassword = htmlspecialchars($password, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $safeNameHtml = htmlspecialchars($safeName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $safeEmailHtml = htmlspecialchars($safeEmail, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+
+    $body = "<html><body style=\"margin:0;padding:0;background:#f3f8f3;font-family:Arial,sans-serif;color:#102214;line-height:1.55;\">"
+        . "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"padding:24px 12px;\">"
+        . "<tr><td align=\"center\">"
+        . "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"max-width:620px;background:#ffffff;border:1px solid #d9e8da;border-radius:14px;overflow:hidden;\">"
+        . "<tr><td style=\"background:#1b5e20;color:#ffffff;padding:18px 20px;\">"
+        . "<h1 style=\"margin:0;font-size:22px;line-height:1.2;\">Välkommen till Golfcounter</h1>"
+        . "<p style=\"margin:8px 0 0;font-size:14px;opacity:0.95;\">Din digitala följeslagare för slagregistrering under rundan</p>"
+        . "</td></tr>"
+        . "<tr><td style=\"padding:20px;\">"
+        . "<p style=\"margin:0 0 14px;\">Hej {$safeNameHtml},</p>"
+        . "<p style=\"margin:0 0 18px;\">Tack för att du registrerat dig! I Golfcounter kan du enkelt och smidigt logga slag per hål och rond, både för dig själv och medspelare.</p>"
+        . "<h2 style=\"margin:0 0 8px;font-size:16px;color:#1b5e20;\">Inloggningsuppgifter</h2>"
+        . "<table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" style=\"border:1px solid #d6e1d7;border-radius:10px;background:#f7fbf7;margin-bottom:18px;\">"
+        . "<tr><td style=\"padding:12px 14px;\"><strong>Användarnamn:</strong> {$safeEmailHtml}<br><strong>Lösenord:</strong> {$safePassword}</td></tr>"
+        . "</table>"
+        . "<h2 style=\"margin:0 0 8px;font-size:16px;color:#1b5e20;\">Kom igång</h2>"
+        . "<p style=\"margin:0 0 18px;\">Logga in här: <a href=\"{$serviceUrl}\" style=\"color:#1b5e20;font-weight:700;\">{$serviceUrl}</a></p>"
+        . "<h2 style=\"margin:0 0 8px;font-size:16px;color:#1b5e20;\">Stöd tjänsten</h2>"
+        . "<p style=\"margin:0 0 10px;\">Golfcounter tillhandahålls gratis, men vi tar tacksamt emot valfri donation för att kunna hålla tjänsten igång.</p>"
+        . "<p style=\"margin:0 0 10px;\">Donera här: <a href=\"{$donationUrl}\" style=\"color:#1b5e20;font-weight:700;\">{$donationUrl}</a></p>"
+        . "<p style=\"margin:0 0 8px;\">Swish QR:</p>"
+        . "<p style=\"margin:0 0 18px;\"><img src=\"{$swishQrUrl}\" alt=\"Swish QR för donation\" style=\"max-width:220px;height:auto;border:1px solid #d6dfd7;border-radius:8px;background:#fff;\"></p>"
+        . "<p style=\"margin:0;\">Vänliga hälsningar,<br><strong>Teamet på Golfcounter</strong></p>"
+        . "</td></tr>"
+        . "</table>"
+        . "</td></tr>"
+        . "</table>"
+        . "</body></html>";
+
+    $headers = [
+        'MIME-Version: 1.0',
+        'Content-Type: text/html; charset=UTF-8',
+        'From: Golfcounter <golfcounter@sharpedge.se>',
+        'Reply-To: golfcounter@sharpedge.se',
+    ];
+
+    // Registration should not fail if email delivery is unavailable.
+    @mail($to, $subject, $body, implode("\r\n", $headers));
 }
 
 function logoutUser(): void
