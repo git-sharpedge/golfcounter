@@ -1,1 +1,38 @@
 DirectoryIndex index.php index.html
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Block common malicious query patterns.
+    RewriteCond %{QUERY_STRING} (\.\./|<|>|%3C|%3E|union(\+|%20)select|base64_) [NC]
+    RewriteRule ^ - [F,L]
+</IfModule>
+
+# Restrict API endpoint to POST only.
+<Files "api.php">
+    <LimitExcept POST>
+        <IfModule mod_authz_core.c>
+            Require all denied
+        </IfModule>
+        <IfModule !mod_authz_core.c>
+            Order allow,deny
+            Deny from all
+        </IfModule>
+    </LimitExcept>
+</Files>
+
+# Manual IP block list (add aggressive IPs below).
+<IfModule mod_authz_core.c>
+    <RequireAll>
+        Require all granted
+        # Require not ip 203.0.113.10
+        # Require not ip 198.51.100.0/24
+    </RequireAll>
+</IfModule>
+
+<IfModule !mod_authz_core.c>
+    Order Allow,Deny
+    Allow from all
+    # Deny from 203.0.113.10
+    # Deny from 198.51.100.0/24
+</IfModule>

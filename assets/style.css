@@ -270,6 +270,16 @@ label {
     height: 18px;
 }
 
+.captcha-question {
+    display: inline-block;
+    background: #f2f6f2;
+    border: 1px solid #d0d9d1;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-weight: 700;
+    color: #1d3c23;
+}
+
 input[type="text"] {
     border: 1px solid #d0d9d1;
     border-radius: 10px;

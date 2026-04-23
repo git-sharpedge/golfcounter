@@ -143,8 +143,7 @@ declare(strict_types=1);
                 </label>
                 <label>
                     <span data-i18n="golfIdLabel">Golf-ID</span>
-                    <input type="text" id="registerGolfId" maxlength="10" data-i18n-placeholder="golfIdPlaceholder" placeholder="YYMMDD-NNN">
-                    <small id="registerGolfIdError" class="field-error" aria-live="polite"></small>
+                    <input type="text" id="registerGolfId" maxlength="50" data-i18n-placeholder="golfIdPlaceholder" placeholder="Golf-ID">
                 </label>
                 <label>
                     <span data-i18n="passwordLabel">Losenord</span>
@@ -153,6 +152,13 @@ declare(strict_types=1);
                 <label class="consent-check">
                     <input type="checkbox" id="registerConsent" required>
                     <span data-i18n="registerConsentText">Jag godkänner att Golfcounter lagrar förnamn, efternamn, golf-ID, namn på golfbana, antal slag och tidpunkt för att tjänsten ska fungera.</span>
+                </label>
+                <label>
+                    <span data-i18n="captchaLabel">Säkerhetsfråga</span>
+                    <div id="registerCaptchaQuestion" class="captcha-question">...</div>
+                    <input type="text" id="registerCaptchaAnswer" data-i18n-placeholder="captchaPlaceholder" placeholder="Skriv svaret" required>
+                    <small id="registerCaptchaError" class="field-error" aria-live="polite"></small>
+                    <button id="registerCaptchaReloadBtn" type="button" class="text-btn" data-i18n="captchaReload">Ny fråga</button>
                 </label>
                 <button type="submit" class="primary-btn">
                     <i class="fa-solid fa-user-plus"></i> <span data-i18n="registerButton">Registrera</span>
@@ -295,6 +301,13 @@ declare(strict_types=1);
                         <span data-i18n="contactMessageLabel">Meddelande</span>
                         <textarea id="contactMessage" rows="6" required maxlength="4000" data-i18n-placeholder="contactMessagePlaceholder" placeholder="Skriv ditt meddelande här..."></textarea>
                     </label>
+                    <label>
+                        <span data-i18n="captchaLabel">Säkerhetsfråga</span>
+                        <div id="contactCaptchaQuestion" class="captcha-question">...</div>
+                        <input type="text" id="contactCaptchaAnswer" data-i18n-placeholder="captchaPlaceholder" placeholder="Skriv svaret" required>
+                        <small id="contactCaptchaError" class="field-error" aria-live="polite"></small>
+                        <button id="contactCaptchaReloadBtn" type="button" class="text-btn" data-i18n="captchaReload">Ny fråga</button>
+                    </label>
                     <button type="submit" class="primary-btn">
                         <i class="fa-solid fa-paper-plane"></i> <span data-i18n="contactSendButton">Skicka meddelande</span>
                     </button>
@@ -394,8 +407,7 @@ declare(strict_types=1);
             </label>
             <label>
                 <span data-i18n="golfIdLabel">Golf-ID</span>
-                <input type="text" id="forgotPasswordGolfId" data-i18n-placeholder="golfIdPlaceholder" placeholder="YYMMDD-NNN" maxlength="10" required>
-                <small id="forgotPasswordGolfIdError" class="field-error" aria-live="polite"></small>
+                <input type="text" id="forgotPasswordGolfId" data-i18n-placeholder="golfIdPlaceholder" placeholder="Golf-ID" maxlength="50" required>
             </label>
             <label>
                 <span data-i18n="newPasswordLabel">Nytt lösenord</span>
@@ -405,6 +417,13 @@ declare(strict_types=1);
                 <span data-i18n="confirmPasswordLabel">Bekräfta nytt lösenord</span>
                 <input type="password" id="forgotPasswordConfirmPassword" minlength="12" required>
                 <small id="forgotPasswordConfirmError" class="field-error" aria-live="polite"></small>
+            </label>
+            <label>
+                <span data-i18n="captchaLabel">Säkerhetsfråga</span>
+                <div id="forgotPasswordCaptchaQuestion" class="captcha-question">...</div>
+                <input type="text" id="forgotPasswordCaptchaAnswer" data-i18n-placeholder="captchaPlaceholder" placeholder="Skriv svaret" required>
+                <small id="forgotPasswordCaptchaError" class="field-error" aria-live="polite"></small>
+                <button id="forgotPasswordCaptchaReloadBtn" type="button" class="text-btn" data-i18n="captchaReload">Ny fråga</button>
             </label>
             <div class="dialog-actions">
                 <button id="forgotPasswordCancelBtn" type="button" class="ghost-btn" data-i18n="cancel">Avbryt</button>
@@ -440,8 +459,7 @@ declare(strict_types=1);
     <div class="teammate-row">
         <input type="text" class="teammate-name" placeholder="Namn" maxlength="120">
         <div class="teammate-golfid-wrap">
-            <input type="text" class="teammate-golfid" placeholder="YYMMDD-NNN" maxlength="10">
-            <small class="field-error teammate-golfid-error" aria-live="polite"></small>
+            <input type="text" class="teammate-golfid" placeholder="Golf-ID" maxlength="50">
         </div>
         <button type="button" class="ghost-btn remove-teammate-btn">
             <i class="fa-solid fa-trash"></i>

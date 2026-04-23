@@ -22,7 +22,6 @@ const forgotPasswordEmailInput = document.getElementById("forgotPasswordEmail");
 const forgotPasswordGolfIdInput = document.getElementById("forgotPasswordGolfId");
 const forgotPasswordNewPasswordInput = document.getElementById("forgotPasswordNewPassword");
 const forgotPasswordConfirmPasswordInput = document.getElementById("forgotPasswordConfirmPassword");
-const forgotPasswordGolfIdError = document.getElementById("forgotPasswordGolfIdError");
 const forgotPasswordConfirmError = document.getElementById("forgotPasswordConfirmError");
 const appDialog = document.getElementById("appDialog");
 const appDialogTitle = document.getElementById("appDialogTitle");
@@ -39,7 +38,18 @@ const donationQrBlock = document.getElementById("donationQrBlock");
 const registerEmailInput = document.getElementById("registerEmail");
 const registerGolfIdInput = document.getElementById("registerGolfId");
 const registerEmailError = document.getElementById("registerEmailError");
-const registerGolfIdError = document.getElementById("registerGolfIdError");
+const registerCaptchaQuestion = document.getElementById("registerCaptchaQuestion");
+const registerCaptchaAnswer = document.getElementById("registerCaptchaAnswer");
+const registerCaptchaError = document.getElementById("registerCaptchaError");
+const registerCaptchaReloadBtn = document.getElementById("registerCaptchaReloadBtn");
+const forgotPasswordCaptchaQuestion = document.getElementById("forgotPasswordCaptchaQuestion");
+const forgotPasswordCaptchaAnswer = document.getElementById("forgotPasswordCaptchaAnswer");
+const forgotPasswordCaptchaError = document.getElementById("forgotPasswordCaptchaError");
+const forgotPasswordCaptchaReloadBtn = document.getElementById("forgotPasswordCaptchaReloadBtn");
+const contactCaptchaQuestion = document.getElementById("contactCaptchaQuestion");
+const contactCaptchaAnswer = document.getElementById("contactCaptchaAnswer");
+const contactCaptchaError = document.getElementById("contactCaptchaError");
+const contactCaptchaReloadBtn = document.getElementById("contactCaptchaReloadBtn");
 
 const setupSection = document.getElementById("setupSection");
 const noRoundNotice = document.getElementById("noRoundNotice");
@@ -78,13 +88,17 @@ const I18N = {
         emailLabel: "E-post",
         emailPlaceholder: "name@example.com",
         golfIdLabel: "Golf-ID",
-        golfIdPlaceholder: "YYMMDD-NNN",
+        golfIdPlaceholder: "Golf-ID",
         passwordLabel: "Lösenord",
         forgotPasswordLink: "Glömt lösenord?",
         forgotPasswordTitle: "Återställ lösenord",
         forgotPasswordDescription: "Fyll i e-post och Golf-ID för kontot, och välj ett nytt lösenord.",
         confirmPasswordLabel: "Bekräfta nytt lösenord",
         resetPasswordButton: "Spara nytt lösenord",
+        captchaLabel: "Säkerhetsfråga",
+        captchaPlaceholder: "Skriv svaret",
+        captchaReload: "Ny fråga",
+        captchaFailed: "Fel svar på säkerhetsfrågan. Försök igen.",
         registerConsentText: "Jag godkänner att Golfcounter lagrar förnamn, efternamn, golf-ID, namn på golfbana, antal slag och tidpunkt för att tjänsten ska fungera.",
         loginButton: "Logga in",
         registerButton: "Registrera",
@@ -164,7 +178,6 @@ const I18N = {
         registerConsentRequired: "Du måste godkänna datalagring för att skapa konto.",
         passwordStrengthRequired: "Lösenord måste vara minst 12 tecken och innehålla minst tre av: stora bokstäver, små bokstäver, siffror eller specialtecken.",
         invalidEmailMessage: "Ange en giltig e-postadress, till exempel namn@example.com.",
-        invalidGolfIdMessage: "Ange Golf-ID i formatet YYMMDD-NNN (6 siffror, bindestreck, 3 siffror).",
         forgotPasswordMismatch: "Nytt lösenord och bekräftelse måste vara identiska.",
         forgotPasswordSuccess: "Lösenordet är uppdaterat. Du kan nu logga in.",
         forgotPasswordFailed: "Kunde inte återställa lösenord: {error}",
@@ -225,13 +238,17 @@ const I18N = {
         emailLabel: "Email",
         emailPlaceholder: "name@example.com",
         golfIdLabel: "Golf ID",
-        golfIdPlaceholder: "YYMMDD-NNN",
+        golfIdPlaceholder: "Golf ID",
         passwordLabel: "Password",
         forgotPasswordLink: "Forgot password?",
         forgotPasswordTitle: "Reset password",
         forgotPasswordDescription: "Enter the account email and Golf ID, then choose a new password.",
         confirmPasswordLabel: "Confirm new password",
         resetPasswordButton: "Save new password",
+        captchaLabel: "Security challenge",
+        captchaPlaceholder: "Enter the answer",
+        captchaReload: "New question",
+        captchaFailed: "Incorrect answer to the security challenge. Please try again.",
         registerConsentText: "I consent to Golfcounter storing first name, last name, Golf ID, golf course name, stroke count, and timestamps so the service can function.",
         loginButton: "Sign in",
         registerButton: "Register",
@@ -311,7 +328,6 @@ const I18N = {
         registerConsentRequired: "You must approve data storage to create an account.",
         passwordStrengthRequired: "Password must be at least 12 characters and include at least three of: uppercase letters, lowercase letters, numbers, or special characters.",
         invalidEmailMessage: "Enter a valid email address, for example name@example.com.",
-        invalidGolfIdMessage: "Enter Golf ID in the format YYMMDD-NNN (6 digits, hyphen, 3 digits).",
         forgotPasswordMismatch: "New password and confirmation must match.",
         forgotPasswordSuccess: "Password updated. You can now sign in.",
         forgotPasswordFailed: "Could not reset password: {error}",
@@ -384,6 +400,11 @@ const state = {
     detailRounds: {},
     lastPublicMenuActivationAt: 0,
     loggedOutContactDraftActive: false,
+    captcha: {
+        register: null,
+        forgot_password: null,
+        contact_message: null,
+    },
 };
 
 let loggedOutViewHideTimer = null;
@@ -405,6 +426,7 @@ if (languageSelect) {
 applyStaticTranslations();
 setupDonationUi();
 initializeFieldValidation();
+void initializeCaptcha();
 
 loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -423,7 +445,8 @@ loginForm.addEventListener("submit", async (event) => {
 });
 
 if (forgotPasswordOpenBtn && forgotPasswordDialog) {
-    forgotPasswordOpenBtn.addEventListener("click", () => {
+    forgotPasswordOpenBtn.addEventListener("click", async () => {
+        await refreshCaptcha("forgot_password");
         if (typeof forgotPasswordDialog.showModal === "function") {
             forgotPasswordDialog.showModal();
         }
@@ -455,24 +478,15 @@ if (forgotPasswordForm) {
         event.preventDefault();
 
         const email = forgotPasswordEmailInput.value.trim();
-        const golfId = normalizeGolfId(forgotPasswordGolfIdInput.value.trim());
+        const golfId = forgotPasswordGolfIdInput.value.trim();
         const newPassword = forgotPasswordNewPasswordInput.value;
         const confirmPassword = forgotPasswordConfirmPasswordInput.value;
-        forgotPasswordGolfIdInput.value = golfId;
+        const forgotCaptcha = state.captcha.forgot_password;
+        const captchaAnswer = (forgotPasswordCaptchaAnswer?.value || "").trim();
 
         const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
         if (!isEmailValid) {
             await showAppAlert(t("invalidEmailMessage"));
-            return;
-        }
-
-        const isGolfIdValid = validateGolfIdField(
-            forgotPasswordGolfIdInput,
-            forgotPasswordGolfIdError,
-            golfId,
-            false
-        );
-        if (!isGolfIdValid) {
             return;
         }
 
@@ -490,19 +504,32 @@ if (forgotPasswordForm) {
             return;
         }
         clearInputError(forgotPasswordConfirmPasswordInput, forgotPasswordConfirmError);
+        if (!forgotCaptcha || captchaAnswer === "") {
+            showInputError(forgotPasswordCaptchaAnswer, forgotPasswordCaptchaError, t("captchaFailed"));
+            return;
+        }
+        clearInputError(forgotPasswordCaptchaAnswer, forgotPasswordCaptchaError);
 
         try {
             await postApi("forgot_password", {
                 email,
                 golf_id: golfId,
                 new_password: newPassword,
+                captcha_context: "forgot_password",
+                captcha_id: forgotCaptcha.id,
+                captcha_answer: captchaAnswer,
             });
             forgotPasswordForm.reset();
-            clearInputError(forgotPasswordGolfIdInput, forgotPasswordGolfIdError);
             clearInputError(forgotPasswordConfirmPasswordInput, forgotPasswordConfirmError);
+            clearInputError(forgotPasswordCaptchaAnswer, forgotPasswordCaptchaError);
             forgotPasswordDialog.close();
             await showAppAlert(t("forgotPasswordSuccess"));
         } catch (error) {
+            if (error.message === "captcha_failed") {
+                showInputError(forgotPasswordCaptchaAnswer, forgotPasswordCaptchaError, t("captchaFailed"));
+                await refreshCaptcha("forgot_password");
+                return;
+            }
             await showAppAlert(t("forgotPasswordFailed", { error: error.message }));
         }
     });
@@ -514,10 +541,17 @@ registerForm.addEventListener("submit", async (event) => {
     const password = document.getElementById("registerPassword").value;
     const email = registerEmailInput.value.trim();
     const golfId = registerGolfIdInput.value.trim();
+    const registerCaptcha = state.captcha.register;
+    const captchaAnswer = (registerCaptchaAnswer?.value || "").trim();
 
     const isEmailValid = validateRegisterEmail(email);
-    const isGolfIdValid = validateGolfIdField(registerGolfIdInput, registerGolfIdError, golfId, true);
-    if (!isEmailValid || !isGolfIdValid) {
+    const hasCaptcha = Boolean(registerCaptcha && captchaAnswer !== "");
+    if (!hasCaptcha) {
+        showInputError(registerCaptchaAnswer, registerCaptchaError, t("captchaFailed"));
+    } else {
+        clearInputError(registerCaptchaAnswer, registerCaptchaError);
+    }
+    if (!isEmailValid || !hasCaptcha) {
         return;
     }
     if (!consentAccepted) {
@@ -533,18 +567,26 @@ registerForm.addEventListener("submit", async (event) => {
         const response = await postApi("register", {
             name: document.getElementById("registerName").value.trim(),
             email,
-            golf_id: normalizeGolfId(golfId),
+            golf_id: golfId,
             password,
             consent_accepted: consentAccepted,
             language: state.language,
+            captcha_context: "register",
+            captcha_id: registerCaptcha.id,
+            captcha_answer: captchaAnswer,
         });
         setUser(response.user);
         registerForm.reset();
         clearInputError(registerEmailInput, registerEmailError);
-        clearInputError(registerGolfIdInput, registerGolfIdError);
+        clearInputError(registerCaptchaAnswer, registerCaptchaError);
         await restoreRoundFromLocalStorage();
         await refreshRounds();
     } catch (error) {
+        if (error.message === "captcha_failed") {
+            showInputError(registerCaptchaAnswer, registerCaptchaError, t("captchaFailed"));
+            await refreshCaptcha("register");
+            return;
+        }
         await showAppAlert(t("registerFailed", { error: error.message }));
     }
 });
@@ -584,6 +626,13 @@ if (contactForm) {
 
     contactForm.addEventListener("submit", async (event) => {
         event.preventDefault();
+        const contactCaptcha = state.captcha.contact_message;
+        const captchaAnswer = (contactCaptchaAnswer?.value || "").trim();
+        if (!contactCaptcha || captchaAnswer === "") {
+            showInputError(contactCaptchaAnswer, contactCaptchaError, t("captchaFailed"));
+            return;
+        }
+        clearInputError(contactCaptchaAnswer, contactCaptchaError);
         if (!state.user) {
             state.loggedOutContactDraftActive = false;
             state.lastPublicMenuActivationAt = Date.now();
@@ -594,15 +643,29 @@ if (contactForm) {
                 name: document.getElementById("contactName").value.trim(),
                 email: document.getElementById("contactEmail").value.trim(),
                 message: document.getElementById("contactMessage").value.trim(),
+                captcha_context: "contact_message",
+                captcha_id: contactCaptcha.id,
+                captcha_answer: captchaAnswer,
             });
             contactForm.reset();
+            if (contactCaptchaAnswer) {
+                contactCaptchaAnswer.value = "";
+            }
+            clearInputError(contactCaptchaAnswer, contactCaptchaError);
             if (state.user) {
                 document.getElementById("contactName").value = state.user.name || "";
                 document.getElementById("contactEmail").value = state.user.email || "";
             }
             await showAppAlert(t("contactSent"));
         } catch (error) {
+            if (error.message === "captcha_failed") {
+                showInputError(contactCaptchaAnswer, contactCaptchaError, t("captchaFailed"));
+                await refreshCaptcha("contact_message");
+                return;
+            }
             await showAppAlert(t("contactFailed", { error: error.message }));
+        } finally {
+            await refreshCaptcha("contact_message");
         }
     });
 }
@@ -843,6 +906,8 @@ function setUser(user) {
     }
 
     if (!user) {
+        void refreshCaptcha("register");
+        void refreshCaptcha("contact_message");
         state.loggedOutContactDraftActive = false;
         clearLoggedOutViewHideTimer();
         authSection.classList.remove("hidden");
@@ -926,18 +991,14 @@ function addTeammateRow(player = null) {
     const row = teammateTemplate.content.firstElementChild.cloneNode(true);
     const nameInput = row.querySelector(".teammate-name");
     const golfInput = row.querySelector(".teammate-golfid");
-    const golfError = row.querySelector(".teammate-golfid-error");
     const removeButton = row.querySelector(".remove-teammate-btn");
     nameInput.placeholder = t("nameLabel");
     golfInput.placeholder = t("golfIdPlaceholder");
 
     if (player) {
         nameInput.value = player.player_name || "";
-        golfInput.value = normalizeGolfId(player.golf_id || "");
+        golfInput.value = player.golf_id || "";
     }
-
-    bindGolfIdInput(golfInput, golfError, true);
-    validateGolfIdField(golfInput, golfError, golfInput.value, true);
 
     removeButton.addEventListener("click", () => {
         row.remove();
@@ -951,20 +1012,11 @@ async function startRound() {
     const formData = new FormData(setupForm);
     const teammateRows = Array.from(teammatesList.querySelectorAll(".teammate-row"));
     const teammates = [];
-    let hasInvalidGolfId = false;
 
     teammateRows.forEach((row) => {
         const name = row.querySelector(".teammate-name").value.trim();
         const golfInput = row.querySelector(".teammate-golfid");
-        const golfError = row.querySelector(".teammate-golfid-error");
-        const golfIdRaw = golfInput.value.trim();
-        const golfId = normalizeGolfId(golfIdRaw);
-        golfInput.value = golfId;
-
-        const isGolfIdValid = validateGolfIdField(golfInput, golfError, golfId, true);
-        if (!isGolfIdValid) {
-            hasInvalidGolfId = true;
-        }
+        const golfId = golfInput.value.trim();
 
         if (name !== "") {
             teammates.push({
@@ -973,10 +1025,6 @@ async function startRound() {
             });
         }
     });
-
-    if (hasInvalidGolfId) {
-        return;
-    }
 
     if (teammates.length > 3) {
         await showAppAlert(t("maxPlayers"));
@@ -1777,14 +1825,6 @@ function initializeFieldValidation() {
         });
     }
 
-    if (registerGolfIdInput) {
-        bindGolfIdInput(registerGolfIdInput, registerGolfIdError, true);
-    }
-
-    if (forgotPasswordGolfIdInput) {
-        bindGolfIdInput(forgotPasswordGolfIdInput, forgotPasswordGolfIdError, false);
-    }
-
     if (forgotPasswordConfirmPasswordInput && forgotPasswordNewPasswordInput) {
         forgotPasswordConfirmPasswordInput.addEventListener("input", () => {
             if (forgotPasswordConfirmPasswordInput.value === forgotPasswordNewPasswordInput.value) {
@@ -1802,33 +1842,6 @@ function initializeFieldValidation() {
     }
 }
 
-function bindGolfIdInput(inputElement, errorElement, allowEmpty) {
-    if (!inputElement) {
-        return;
-    }
-
-    inputElement.addEventListener("input", () => {
-        const previousValue = inputElement.value;
-        const formattedValue = normalizeGolfId(previousValue);
-        inputElement.value = formattedValue;
-        validateGolfIdField(inputElement, errorElement, formattedValue, allowEmpty);
-    });
-
-    inputElement.addEventListener("blur", () => {
-        const formattedValue = normalizeGolfId(inputElement.value);
-        inputElement.value = formattedValue;
-        validateGolfIdField(inputElement, errorElement, formattedValue, allowEmpty);
-    });
-}
-
-function normalizeGolfId(rawValue) {
-    const digits = String(rawValue ?? "").replace(/\D/g, "").slice(0, 9);
-    if (digits.length <= 6) {
-        return digits;
-    }
-    return `${digits.slice(0, 6)}-${digits.slice(6)}`;
-}
-
 function validateRegisterEmail(value) {
     if (value === "") {
         showInputError(registerEmailInput, registerEmailError, t("invalidEmailMessage"));
@@ -1842,23 +1855,6 @@ function validateRegisterEmail(value) {
     }
 
     clearInputError(registerEmailInput, registerEmailError);
-    return true;
-}
-
-function validateGolfIdField(inputElement, errorElement, value, allowEmpty) {
-    const normalizedValue = String(value ?? "").trim();
-    if (allowEmpty && normalizedValue === "") {
-        clearInputError(inputElement, errorElement);
-        return true;
-    }
-
-    const isValid = /^\d{6}-\d{3}$/.test(normalizedValue);
-    if (!isValid) {
-        showInputError(inputElement, errorElement, t("invalidGolfIdMessage"));
-        return false;
-    }
-
-    clearInputError(inputElement, errorElement);
     return true;
 }
 
@@ -1893,6 +1889,77 @@ function isStrongPassword(password) {
     matched += /\d/.test(password) ? 1 : 0;
     matched += /[^A-Za-z0-9]/.test(password) ? 1 : 0;
     return matched >= 3;
+}
+
+async function initializeCaptcha() {
+    if (registerCaptchaReloadBtn) {
+        registerCaptchaReloadBtn.addEventListener("click", () => {
+            void refreshCaptcha("register");
+        });
+    }
+    if (forgotPasswordCaptchaReloadBtn) {
+        forgotPasswordCaptchaReloadBtn.addEventListener("click", () => {
+            void refreshCaptcha("forgot_password");
+        });
+    }
+    if (contactCaptchaReloadBtn) {
+        contactCaptchaReloadBtn.addEventListener("click", () => {
+            void refreshCaptcha("contact_message");
+        });
+    }
+
+    await Promise.all([
+        refreshCaptcha("register"),
+        refreshCaptcha("contact_message"),
+    ]);
+}
+
+async function refreshCaptcha(context) {
+    try {
+        const response = await postApi("get_captcha", { context });
+        state.captcha[context] = {
+            id: response.captcha_id,
+            question: response.question,
+        };
+        renderCaptcha(context);
+    } catch (error) {
+        state.captcha[context] = null;
+        renderCaptcha(context);
+    }
+}
+
+function renderCaptcha(context) {
+    const captchaData = state.captcha[context];
+    const question = captchaData?.question || "...";
+    if (context === "register") {
+        if (registerCaptchaQuestion) {
+            registerCaptchaQuestion.textContent = question;
+        }
+        if (registerCaptchaAnswer) {
+            registerCaptchaAnswer.value = "";
+        }
+        clearInputError(registerCaptchaAnswer, registerCaptchaError);
+        return;
+    }
+    if (context === "forgot_password") {
+        if (forgotPasswordCaptchaQuestion) {
+            forgotPasswordCaptchaQuestion.textContent = question;
+        }
+        if (forgotPasswordCaptchaAnswer) {
+            forgotPasswordCaptchaAnswer.value = "";
+        }
+        clearInputError(forgotPasswordCaptchaAnswer, forgotPasswordCaptchaError);
+        return;
+    }
+    if (context === "contact_message") {
+        if (contactCaptchaQuestion) {
+            contactCaptchaQuestion.textContent = question;
+        }
+        if (contactCaptchaAnswer) {
+            contactCaptchaAnswer.value = "";
+        }
+        clearInputError(contactCaptchaAnswer, contactCaptchaError);
+    }
 }
 
 function t(key, params = {}) {

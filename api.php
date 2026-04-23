@@ -15,18 +15,21 @@ try {
         $input = [];
     }
 
-    $action = $input['action'] ?? '';
-    $pdo = getPdo();
+    $action = trim((string) ($input['action'] ?? ''));
+    enforceRateLimit($action);
 
     switch ($action) {
+        case 'get_captcha':
+            getCaptcha($input);
+            break;
         case 'register':
-            registerUser($pdo, $input);
+            registerUser(getPdo(), $input);
             break;
         case 'login':
-            loginUser($pdo, $input);
+            loginUser(getPdo(), $input);
             break;
         case 'forgot_password':
-            forgotPassword($pdo, $input);
+            forgotPassword(getPdo(), $input);
             break;
         case 'contact_message':
             sendContactMessage($input);
@@ -35,31 +38,31 @@ try {
             logoutUser();
             break;
         case 'get_session':
-            getSession($pdo);
+            getSession(getPdo());
             break;
         case 'update_account':
-            updateAccount($pdo, $input);
+            updateAccount(getPdo(), $input);
             break;
         case 'start_round':
-            startRound($pdo, $input);
+            startRound(getPdo(), $input);
             break;
         case 'save_hole':
-            saveHole($pdo, $input);
+            saveHole(getPdo(), $input);
             break;
         case 'finish_round':
-            finishRound($pdo, $input);
+            finishRound(getPdo(), $input);
             break;
         case 'get_round':
-            getRound($pdo, $input);
+            getRound(getPdo(), $input);
             break;
         case 'list_rounds':
-            listRounds($pdo);
+            listRounds(getPdo());
             break;
         case 'update_finished_round':
-            updateFinishedRound($pdo, $input);
+            updateFinishedRound(getPdo(), $input);
             break;
         case 'delete_finished_round':
-            deleteFinishedRound($pdo, $input);
+            deleteFinishedRound(getPdo(), $input);
             break;
         default:
             sendJson(['error' => 'Invalid action'], 400);
@@ -70,6 +73,8 @@ try {
 
 function registerUser(PDO $pdo, array $input): void
 {
+    verifyCaptcha($input, 'register');
+
     $name = trim((string) ($input['name'] ?? ''));
     $email = strtolower(trim((string) ($input['email'] ?? '')));
     $golfId = trim((string) ($input['golf_id'] ?? ''));
@@ -149,15 +154,14 @@ function loginUser(PDO $pdo, array $input): void
 
 function forgotPassword(PDO $pdo, array $input): void
 {
+    verifyCaptcha($input, 'forgot_password');
+
     $email = strtolower(trim((string) ($input['email'] ?? '')));
     $golfId = trim((string) ($input['golf_id'] ?? ''));
     $newPassword = (string) ($input['new_password'] ?? '');
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         sendJson(['error' => 'Ogiltig e-postadress.'], 422);
-    }
-    if (!isValidGolfId($golfId)) {
-        sendJson(['error' => 'Golf-ID måste vara i formatet YYMMDD-NNN.'], 422);
     }
     if (!isStrongPassword($newPassword)) {
         sendJson(['error' => 'Nytt lösenord måste vara minst 12 tecken och innehålla minst tre av: stora bokstäver, små bokstäver, siffror eller specialtecken.'], 422);
@@ -185,6 +189,8 @@ function forgotPassword(PDO $pdo, array $input): void
 
 function sendContactMessage(array $input): void
 {
+    verifyCaptcha($input, 'contact_message');
+
     $name = trim((string) ($input['name'] ?? ''));
     $email = strtolower(trim((string) ($input['email'] ?? '')));
     $message = trim((string) ($input['message'] ?? ''));
@@ -805,9 +811,180 @@ function fetchUserById(PDO $pdo, int $userId, bool $withPassword = false): array
     return $user;
 }
 
-function isValidGolfId(string $golfId): bool
+function getCaptcha(array $input): void
 {
-    return (bool) preg_match('/^\d{6}-\d{3}$/', $golfId);
+    $context = trim((string) ($input['context'] ?? ''));
+    if (!in_array($context, ['register', 'forgot_password', 'contact_message'], true)) {
+        sendJson(['error' => 'Invalid captcha context.'], 422);
+    }
+
+    $left = random_int(1, 9);
+    $right = random_int(1, 9);
+    $operator = random_int(0, 1) === 0 ? '+' : '-';
+
+    if ($operator === '+' || $left >= $right) {
+        $answer = $operator === '+' ? $left + $right : $left - $right;
+    } else {
+        $answer = $right - $left;
+        [$left, $right] = [$right, $left];
+    }
+
+    $captchaId = bin2hex(random_bytes(16));
+    $question = "{$left} {$operator} {$right} = ?";
+    $expiresAt = time() + 10 * 60;
+
+    if (!isset($_SESSION['captchas']) || !is_array($_SESSION['captchas'])) {
+        $_SESSION['captchas'] = [];
+    }
+    cleanupExpiredCaptchas();
+    $_SESSION['captchas'][$captchaId] = [
+        'context' => $context,
+        'answer' => (string) $answer,
+        'expires_at' => $expiresAt,
+    ];
+
+    sendJson([
+        'ok' => true,
+        'captcha_id' => $captchaId,
+        'question' => $question,
+    ]);
+}
+
+function verifyCaptcha(array $input, string $expectedContext): void
+{
+    $context = trim((string) ($input['captcha_context'] ?? ''));
+    $captchaId = trim((string) ($input['captcha_id'] ?? ''));
+    $captchaAnswer = trim((string) ($input['captcha_answer'] ?? ''));
+    cleanupExpiredCaptchas();
+
+    if (
+        $context === '' ||
+        $captchaId === '' ||
+        $captchaAnswer === '' ||
+        !isset($_SESSION['captchas'][$captchaId]) ||
+        !is_array($_SESSION['captchas'][$captchaId])
+    ) {
+        sendJson(['error' => 'captcha_failed'], 422);
+    }
+
+    $captcha = $_SESSION['captchas'][$captchaId];
+    unset($_SESSION['captchas'][$captchaId]);
+
+    $isContextValid = ($context === $expectedContext) && (($captcha['context'] ?? '') === $expectedContext);
+    $isFresh = ((int) ($captcha['expires_at'] ?? 0)) >= time();
+    $isAnswerValid = hash_equals((string) ($captcha['answer'] ?? ''), $captchaAnswer);
+
+    if (!$isContextValid || !$isFresh || !$isAnswerValid) {
+        sendJson(['error' => 'captcha_failed'], 422);
+    }
+}
+
+function cleanupExpiredCaptchas(): void
+{
+    if (!isset($_SESSION['captchas']) || !is_array($_SESSION['captchas'])) {
+        $_SESSION['captchas'] = [];
+        return;
+    }
+
+    $now = time();
+    foreach ($_SESSION['captchas'] as $id => $captcha) {
+        if (!is_array($captcha) || ((int) ($captcha['expires_at'] ?? 0)) < $now) {
+            unset($_SESSION['captchas'][$id]);
+        }
+    }
+}
+
+function enforceRateLimit(string $action): void
+{
+    $rules = [
+        '__global__' => ['limit' => 240, 'window' => 60],
+        'get_captcha' => ['limit' => 60, 'window' => 60],
+        'login' => ['limit' => 25, 'window' => 300],
+        'register' => ['limit' => 8, 'window' => 600],
+        'forgot_password' => ['limit' => 8, 'window' => 600],
+        'contact_message' => ['limit' => 12, 'window' => 600],
+        'start_round' => ['limit' => 30, 'window' => 300],
+        'save_hole' => ['limit' => 160, 'window' => 60],
+        'default' => ['limit' => 120, 'window' => 60],
+    ];
+
+    $globalRule = $rules['__global__'];
+    applyRateLimitRule('__global__', $globalRule['limit'], $globalRule['window']);
+
+    $rule = $rules[$action] ?? $rules['default'];
+    applyRateLimitRule($action, $rule['limit'], $rule['window']);
+}
+
+function applyRateLimitRule(string $action, int $limit, int $windowSeconds): void
+{
+    $ip = getClientIpAddress();
+    $key = sha1("{$action}|{$ip}");
+    $directory = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'golfcounter-rate-limit';
+    if (!is_dir($directory) && !@mkdir($directory, 0777, true) && !is_dir($directory)) {
+        // If storage cannot be created, avoid taking the service down.
+        return;
+    }
+
+    $filePath = $directory . DIRECTORY_SEPARATOR . $key . '.json';
+    $handle = @fopen($filePath, 'c+');
+    if ($handle === false) {
+        return;
+    }
+
+    try {
+        if (!flock($handle, LOCK_EX)) {
+            return;
+        }
+
+        rewind($handle);
+        $raw = stream_get_contents($handle);
+        $payload = is_string($raw) && $raw !== '' ? json_decode($raw, true) : [];
+        $timestamps = [];
+        if (is_array($payload) && isset($payload['hits']) && is_array($payload['hits'])) {
+            $timestamps = array_map('intval', $payload['hits']);
+        }
+
+        $now = time();
+        $cutoff = $now - $windowSeconds;
+        $timestamps = array_values(array_filter($timestamps, static fn (int $ts): bool => $ts >= $cutoff));
+
+        if (count($timestamps) >= $limit) {
+            sendJson(['error' => 'För många förfrågningar. Försök igen om en stund.'], 429);
+        }
+
+        $timestamps[] = $now;
+        $nextPayload = json_encode(['hits' => $timestamps], JSON_THROW_ON_ERROR);
+
+        rewind($handle);
+        ftruncate($handle, 0);
+        fwrite($handle, $nextPayload);
+        fflush($handle);
+    } finally {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+    }
+}
+
+function getClientIpAddress(): string
+{
+    $candidates = [
+        $_SERVER['HTTP_CF_CONNECTING_IP'] ?? null,
+        $_SERVER['HTTP_X_FORWARDED_FOR'] ?? null,
+        $_SERVER['REMOTE_ADDR'] ?? null,
+    ];
+
+    foreach ($candidates as $candidate) {
+        if (!is_string($candidate) || trim($candidate) === '') {
+            continue;
+        }
+
+        $ip = trim(explode(',', $candidate)[0]);
+        if (filter_var($ip, FILTER_VALIDATE_IP)) {
+            return $ip;
+        }
+    }
+
+    return '0.0.0.0';
 }
 
 function isStrongPassword(string $password): bool
