@@ -40,6 +40,12 @@ body {
     gap: 10px;
 }
 
+.hero-logo {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+}
+
 .hero-top {
     display: flex;
     align-items: center;

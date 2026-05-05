@@ -77,7 +77,7 @@ const LOGGED_OUT_MENU_VIEW_TTL_MS = 60 * 1000;
 
 const I18N = {
     "sv-SE": {
-        appTitle: "SE Golfcounter",
+        appTitle: "Golfcounter",
         showInfoAria: "Visa information",
         menuToggleAria: "Öppna meny",
         languageLabel: "Språk",
@@ -227,7 +227,7 @@ const I18N = {
         summaryTotal9: "Totalt 9",
     },
     "en-GB": {
-        appTitle: "SE Golfcounter",
+        appTitle: "Golfcounter",
         showInfoAria: "Show information",
         menuToggleAria: "Open menu",
         languageLabel: "Language",

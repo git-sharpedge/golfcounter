@@ -16,18 +16,18 @@ declare(strict_types=1);
     <meta property="og:title" content="Golfcounter - Registrera scorekort for 9/18 hal">
     <meta property="og:description" content="Fora score per hal, hantera medspelare och se rundhistorik i mobilen.">
     <meta property="og:url" content="https://golfcounter.sharpedge.se/">
-    <meta property="og:image" content="https://golfcounter.sharpedge.se/assets/icons/icon.svg">
+    <meta property="og:image" content="https://golfcounter.sharpedge.se/img/logo_golfball_plus_minus.svg">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Golfcounter - Registrera scorekort for 9/18 hal">
     <meta name="twitter:description" content="Fora score per hal, hantera medspelare och se rundhistorik i mobilen.">
-    <meta name="twitter:image" content="https://golfcounter.sharpedge.se/assets/icons/icon.svg">
+    <meta name="twitter:image" content="https://golfcounter.sharpedge.se/img/logo_golfball_plus_minus.svg">
     <meta name="theme-color" content="#1b5e20">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Golfcounter">
     <link rel="manifest" href="./manifest.webmanifest">
-    <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml">
-    <link rel="apple-touch-icon" href="./assets/icons/icon.svg">
+    <link rel="icon" href="/img/logo_golfball_plus_minus.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/img/logo_golfball_plus_minus.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -54,7 +54,7 @@ declare(strict_types=1);
 <main class="app">
     <section class="hero">
         <div class="hero-top">
-            <h1><i class="fa-solid fa-golf-ball-tee"></i> <span data-i18n="appTitle">SE Golfcounter</span></h1>
+            <h1><img class="hero-logo" src="/img/logo_golfball_plus_minus.svg" alt="Golfcounter logotyp"> <span data-i18n="appTitle">Golfcounter</span></h1>
             <div class="hero-actions">
                 <button id="menuToggleBtn" type="button" class="icon-btn" data-i18n-aria-label="menuToggleAria" aria-label="Öppna meny">
                     <i class="fa-solid fa-bars"></i>

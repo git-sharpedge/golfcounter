@@ -1,11 +1,11 @@
-const CACHE_NAME = "golfcounter-v8";
+const CACHE_NAME = "golfcounter-v13";
 const APP_SHELL = [
     "./",
     "./index.php",
     "./assets/style.css",
     "./assets/app.js",
     "./manifest.webmanifest",
-    "./assets/icons/icon.svg",
+    "/img/logo_golfball_plus_minus.svg",
 ];
 
 self.addEventListener("install", (event) => {

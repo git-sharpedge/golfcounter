@@ -1,5 +1,5 @@
 {
-  "name": "SE Golfcounter",
+  "name": "Golfcounter",
   "short_name": "Golfcounter",
   "description": "Registrera slag per hål och spara golfrundor.",
   "start_url": "./index.php",
@@ -10,7 +10,7 @@
   "theme_color": "#1b5e20",
   "icons": [
     {
-      "src": "./assets/icons/icon.svg",
+      "src": "/img/logo_golfball_plus_minus.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
